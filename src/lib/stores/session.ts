@@ -62,7 +62,22 @@ export function createSessionController(): SessionController {
     state,
 
     setPreset(preset: Preset): void {
+      const wasRunning = get(state).status === 'running';
       state.update((s) => ({ ...s, preset, sweepIndex: 0, setIndex: 0, positionInSet: 0 }));
+      if (wasRunning) {
+        // Restart the engine so audio param changes (frequency, voice, volume,
+        // pan width) and timing changes (speed, set length, set count) take
+        // effect immediately. Sweep counter resets to zero — that's the right
+        // behavior since the new preset may have a different set length.
+        engine.stop();
+        engine.start({
+          speedHz: preset.visual.speedHz,
+          setLength: preset.visual.setLength,
+          setCount: preset.visual.setCount,
+          audio: preset.audio
+        });
+        state.update((s) => ({ ...s, status: 'running' }));
+      }
     },
 
     start(): void {

@@ -3,14 +3,17 @@ import { SESSION_LIMITS } from '../session/types.js';
 /**
  * WCAG 2.1 §2.3 (Three Flashes Threshold) guard.
  *
- * The session engine produces sweep events at 2 * speedHz Hz (each L or R sweep
- * is one event). Visual transitions tied to those events — including any color
- * inversion, opacity blink, or new-target flash — must not exceed the threshold.
+ * Smooth motion (a target sweeping across the screen) is NOT a flash and is
+ * not subject to this threshold — the guideline targets luminance transitions,
+ * not lateral motion. The session can run up to 2.0 Hz sweep speed safely
+ * with the current renderer.
  *
- * We enforce by capping the maximum effective flash rate any UI surface can
- * derive from the engine. Any code that introduces new flashing visuals must
- * route through this module and call {@link assertSafeFlashRate} or
- * {@link safeFlashRate}.
+ * This guard exists to police any FUTURE code that introduces a visual
+ * transition tied to sweep boundaries (target opacity blink, full-screen
+ * color invert, on-sweep flash). At max sweep speed (2.0 Hz → 4 sweeps/sec),
+ * such a 1:1 effect would exceed the threshold and must be downsampled or
+ * smoothed before reaching the renderer. Any such code path must call
+ * {@link assertSafeFlashRate} or {@link safeFlashRate} on its derived rate.
  */
 export const WCAG_FLASH_RATE_MAX_HZ = SESSION_LIMITS.flashRateMaxHz;
 

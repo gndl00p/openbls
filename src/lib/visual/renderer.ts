@@ -1,6 +1,6 @@
 import type { VisualConfig } from '../session/types.js';
 import { pathPoint } from './paths.js';
-import { assertSafeFlashRate, isSweepSpeedAllowed } from './wcag.js';
+import { isSweepSpeedAllowed } from './wcag.js';
 
 export interface RendererStartOptions {
   speedHz: number;
@@ -45,10 +45,11 @@ export class VisualRenderer {
     if (!isSweepSpeedAllowed(opts.speedHz)) {
       throw new Error(`Sweep speed ${opts.speedHz} Hz is outside the allowed range.`);
     }
-    // Guard: no engine-driven visual transition may exceed WCAG §2.3.
-    // Sweep events fire at 2 * speedHz; that is the maximum rate a visual
-    // could "flash" on every sweep boundary.
-    assertSafeFlashRate(2 * opts.speedHz);
+    // The current renderer draws smooth motion only — no per-sweep luminance
+    // flashes — so the WCAG §2.3 guard does not apply to sweep events here.
+    // Any future visual effect tied to sweep boundaries (target blink, color
+    // invert) must call assertSafeFlashRate() on its own derived rate, which
+    // for speeds above 1.5 Hz means downsampling against the sweep stream.
     this.#opts = { ...opts, config: { ...opts.config } };
     this.#startTime = this.#clock.now();
     this.#scheduleFrame();

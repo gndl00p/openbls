@@ -12,13 +12,12 @@
 
   let { children } = $props();
 
-  setupI18n();
-
   const ack = createAcknowledgmentStore();
   const ackState = ack.state;
   const sessionState = sessionController.state;
 
   onMount(async () => {
+    setupI18n();
     installCrashHandler(() => ({
       activePresetId: $sessionState.preset.id,
       sessionStatus: $sessionState.status,

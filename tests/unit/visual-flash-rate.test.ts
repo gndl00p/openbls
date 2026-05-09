@@ -51,16 +51,15 @@ describe('Sweep-speed bounds', () => {
     expect(isSweepSpeedAllowed(NaN)).toBe(false);
   });
 
-  it('engine-driven flash rate at max sweep speed (2.0 Hz) is at exactly the WCAG threshold', () => {
-    // 2 sweeps per Hz of speed → 2 * 2.0 = 4 events/sec, BUT each sweep is a
-    // motion event, not a flash event. The renderer guards against any
-    // visual-flash transition (color change, target blink) being driven at the
-    // raw sweep rate when speed > 1.5 Hz. This test documents that policy:
-    // anything that flashes per-sweep must be downsampled at the renderer.
-    const sweepRate = 2 * SESSION_LIMITS.speedHzMax; // 4 Hz
-    expect(sweepRate).toBeGreaterThan(WCAG_FLASH_RATE_MAX_HZ);
-    // Therefore the assertion would throw — confirming the renderer must
-    // never tie a flash event 1:1 to sweep events at max speed.
-    expect(() => assertSafeFlashRate(sweepRate)).toThrow(FlashRateExceededError);
+  it('any future per-sweep luminance flash above 1.5 Hz speed must downsample', () => {
+    // Smooth target motion is not a flash, so the renderer does not assert
+    // against the raw sweep rate. But IF a future feature ties a luminance
+    // transition (color invert, target blink) 1:1 to sweep events, that
+    // derived flash rate at max speed would be 2 * 2.0 = 4 Hz — above the
+    // §2.3 threshold. This test documents the policy: any such code path
+    // must call assertSafeFlashRate on its own derived rate and downsample.
+    const perSweepFlashRate = 2 * SESSION_LIMITS.speedHzMax; // 4 Hz
+    expect(perSweepFlashRate).toBeGreaterThan(WCAG_FLASH_RATE_MAX_HZ);
+    expect(() => assertSafeFlashRate(perSweepFlashRate)).toThrow(FlashRateExceededError);
   });
 });

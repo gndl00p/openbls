@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import SessionCanvas from '$lib/visual/SessionCanvas.svelte';
   import ButterflyHugGuide from '$lib/butterfly-hug/ButterflyHugGuide.svelte';
+  import ControlsPanel from '$lib/session/ControlsPanel.svelte';
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
   import type { Preset } from '$lib/presets/schema.js';
@@ -13,6 +14,7 @@
   let surfaceEl: HTMLDivElement | undefined = $state();
   let controlsHidden = $state(false);
   let cursorTimer: ReturnType<typeof setTimeout> | null = null;
+  let panelOpen = $state(true);
 
   function pickPreset(p: Preset) {
     sessionController.setPreset(p);
@@ -100,6 +102,7 @@
     {:else}
       <SessionCanvas {preset} {running} />
     {/if}
+    <ControlsPanel bind:open={panelOpen} />
   </div>
 
   {#if !controlsHidden || !fullscreen}
@@ -171,6 +174,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
   }
   .controls {
     border-top: 1px solid var(--border, #26262c);
