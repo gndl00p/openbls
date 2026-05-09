@@ -1,0 +1,47 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SvelteKit
+.svelte-kit/
+build/
+.env
+.env.*
+!.env.example
+.vercel/
+.netlify/
+
+# Vite
+dist/
+*.local
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/Cargo.lock.bak
+*.pdb
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/WixTools/
+release/

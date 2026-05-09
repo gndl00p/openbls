@@ -1,0 +1,21 @@
+{
+  "nav.session": "Session",
+  "nav.presets": "Presets",
+  "nav.settings": "Settings",
+  "nav.about": "About",
+  "session.start": "Start",
+  "session.pause": "Pause",
+  "session.resume": "Resume",
+  "session.stop": "Stop",
+  "session.fullscreen.enter": "Fullscreen (F)",
+  "session.fullscreen.exit": "Exit fullscreen (F)",
+  "session.hint": "Esc immediately stops. Space toggles play/pause. F toggles fullscreen.",
+  "session.label.preset": "Preset",
+  "session.label.set": "set",
+  "session.label.sweep": "sweep",
+  "common.cancel": "Cancel",
+  "common.continue": "Continue",
+  "common.continuing": "Continuing…",
+  "crisis.button": "Crisis resources",
+  "crisis.close": "Close"
+}
