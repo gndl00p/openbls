@@ -3,7 +3,24 @@
 
 export type Channel = 'L' | 'R';
 
-export type AudioVoice = 'sine' | 'click';
+export type AudioVoice =
+  | 'sine'
+  | 'soft'
+  | 'tone'
+  | 'click'
+  | 'woodblock'
+  | 'chime'
+  | 'pluck';
+
+export const AUDIO_VOICES: { value: AudioVoice; label: string; description: string }[] = [
+  { value: 'sine', label: 'Sine', description: 'Pure tone, smooth. Default neutral choice.' },
+  { value: 'soft', label: 'Soft', description: 'Sine with long attack/release. Pad-like, very gentle.' },
+  { value: 'tone', label: 'Tone', description: 'Square wave with body. More presence than sine.' },
+  { value: 'click', label: 'Click', description: 'Sharp percussive square. Crisp attack.' },
+  { value: 'woodblock', label: 'Woodblock', description: 'Pitched percussive with warm decay.' },
+  { value: 'chime', label: 'Chime', description: 'Bell-like overtones, slow decay.' },
+  { value: 'pluck', label: 'Pluck', description: 'Short pitched note with quick decay.' }
+];
 
 export interface AudioConfig {
   enabled: boolean;

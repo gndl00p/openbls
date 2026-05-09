@@ -1,4 +1,4 @@
-import type { AudioConfig, Channel, SweepEvent } from '../session/types.js';
+import type { AudioConfig, AudioVoice, Channel, SweepEvent } from '../session/types.js';
 
 /**
  * Lookahead scheduler. Each tick we look ahead this far and queue any
@@ -43,8 +43,7 @@ export interface StartOptions {
 }
 
 interface ScheduledSweep extends SweepEvent {
-  oscNode?: OscillatorNode | null;
-  gainNode?: GainNode | null;
+  audioNodes?: AudioNode[];
   pannerNode?: StereoPannerNode | null;
   notified?: boolean;
 }
@@ -126,13 +125,22 @@ export class AudioEngine {
       this.#notifyRafId = null;
     }
     for (const sweep of this.#scheduled) {
-      try {
-        sweep.oscNode?.stop();
-      } catch {
-        // ignore; oscillator may have already stopped
+      if (sweep.audioNodes) {
+        for (const node of sweep.audioNodes) {
+          if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
+            try {
+              node.stop();
+            } catch {
+              // ignore; source may already have stopped
+            }
+          }
+          try {
+            node.disconnect();
+          } catch {
+            // ignore double-disconnect
+          }
+        }
       }
-      sweep.oscNode?.disconnect();
-      sweep.gainNode?.disconnect();
       sweep.pannerNode?.disconnect();
     }
     this.#scheduled = [];
@@ -189,7 +197,8 @@ export class AudioEngine {
       endTime: startTime + dur,
       setIndex,
       positionInSet,
-      notified: false
+      notified: false,
+      audioNodes: []
     };
 
     if (this.#opts.audio.enabled) {
@@ -203,41 +212,29 @@ export class AudioEngine {
     if (!this.#ctx || !this.#opts) return;
     const cfg = this.#opts.audio;
     const ctx = this.#ctx;
-
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const panner = ctx.createStereoPanner();
-
-    osc.type = cfg.voice === 'click' ? 'square' : 'sine';
-    osc.frequency.setValueAtTime(cfg.frequencyHz, event.startTime);
-
-    panner.pan.setValueAtTime(event.channel === 'L' ? -cfg.panWidth : cfg.panWidth, event.startTime);
-
-    // Short attack/release so we don't get clicks between sweeps. Click voice
-    // gets a sharper envelope to feel percussive; sine gets a smooth one.
     const dur = event.endTime - event.startTime;
-    const attack = cfg.voice === 'click' ? 0.002 : 0.01;
-    const release = cfg.voice === 'click' ? Math.min(0.04, dur * 0.4) : Math.min(0.05, dur * 0.3);
     const peak = cfg.volume;
 
-    gain.gain.setValueAtTime(0, event.startTime);
-    gain.gain.linearRampToValueAtTime(peak, event.startTime + attack);
-    if (cfg.voice === 'click') {
-      // Click: short body, then decay.
-      gain.gain.linearRampToValueAtTime(0, event.startTime + attack + release);
-    } else {
-      // Sine: hold for the body of the sweep, then release.
-      gain.gain.setValueAtTime(peak, event.endTime - release);
-      gain.gain.linearRampToValueAtTime(0, event.endTime);
-    }
-
-    osc.connect(gain).connect(panner).connect(ctx.destination);
-    osc.start(event.startTime);
-    osc.stop(event.endTime + 0.05);
-
-    event.oscNode = osc;
-    event.gainNode = gain;
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(
+      event.channel === 'L' ? -cfg.panWidth : cfg.panWidth,
+      event.startTime
+    );
+    panner.connect(ctx.destination);
     event.pannerNode = panner;
+    event.audioNodes = [panner];
+
+    const synth: VoiceSynth = VOICE_SYNTHS[cfg.voice] ?? VOICE_SYNTHS.sine;
+    synth({
+      ctx,
+      panner,
+      freq: cfg.frequencyHz,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      dur,
+      peak,
+      addNode: (n) => event.audioNodes!.push(n)
+    });
   }
 
   #prune(): void {
@@ -288,4 +285,215 @@ export class AudioEngine {
       this.#callbacks.onComplete?.();
     }, delay);
   }
+}
+
+// ──────────────────────── Voice synthesis ────────────────────────
+
+interface VoiceCtx {
+  ctx: AudioContext;
+  panner: StereoPannerNode;
+  freq: number;
+  startTime: number;
+  endTime: number;
+  dur: number;
+  peak: number;
+  addNode: (n: AudioNode) => void;
+}
+
+type VoiceSynth = (ctx: VoiceCtx) => void;
+
+/**
+ * One synth function per voice. Each constructs its node graph, schedules
+ * envelopes, connects to the panner, and registers nodes with addNode for
+ * cleanup on stop().
+ */
+const VOICE_SYNTHS: Record<AudioVoice, VoiceSynth> = {
+  sine: ({ ctx, panner, freq, startTime, endTime, dur, peak, addNode }) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    const attack = 0.01;
+    const release = Math.min(0.05, dur * 0.3);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(peak, startTime + attack);
+    gain.gain.setValueAtTime(peak, endTime - release);
+    gain.gain.linearRampToValueAtTime(0, endTime);
+
+    osc.connect(gain).connect(panner);
+    osc.start(startTime);
+    osc.stop(endTime + 0.05);
+    addNode(osc);
+    addNode(gain);
+  },
+
+  soft: ({ ctx, panner, freq, startTime, endTime, dur, peak, addNode }) => {
+    // Long attack + long release → pad-like, very gentle.
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    const attack = Math.min(0.18, dur * 0.4);
+    const release = Math.min(0.22, dur * 0.5);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(peak * 0.85, startTime + attack);
+    gain.gain.setValueAtTime(peak * 0.85, endTime - release);
+    gain.gain.linearRampToValueAtTime(0, endTime);
+
+    osc.connect(gain).connect(panner);
+    osc.start(startTime);
+    osc.stop(endTime + 0.05);
+    addNode(osc);
+    addNode(gain);
+  },
+
+  tone: ({ ctx, panner, freq, startTime, endTime, dur, peak, addNode }) => {
+    // Square through gentle low-pass — body without harshness.
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, startTime);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(Math.min(8000, freq * 4), startTime);
+    filter.Q.setValueAtTime(0.7, startTime);
+
+    const attack = 0.012;
+    const release = Math.min(0.08, dur * 0.35);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(peak * 0.55, startTime + attack);
+    gain.gain.setValueAtTime(peak * 0.55, endTime - release);
+    gain.gain.linearRampToValueAtTime(0, endTime);
+
+    osc.connect(filter).connect(gain).connect(panner);
+    osc.start(startTime);
+    osc.stop(endTime + 0.05);
+    addNode(osc);
+    addNode(filter);
+    addNode(gain);
+  },
+
+  click: ({ ctx, panner, freq, startTime, endTime, dur, peak, addNode }) => {
+    // Sharp percussive square with quick decay.
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    const attack = 0.002;
+    const release = Math.min(0.04, dur * 0.4);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(peak, startTime + attack);
+    gain.gain.linearRampToValueAtTime(0, startTime + attack + release);
+
+    osc.connect(gain).connect(panner);
+    osc.start(startTime);
+    osc.stop(startTime + attack + release + 0.02);
+    addNode(osc);
+    addNode(gain);
+  },
+
+  woodblock: ({ ctx, panner, freq, startTime, peak, addNode }) => {
+    // Pitched percussive: sine + filtered noise burst, exponential decay.
+    const sineOsc = ctx.createOscillator();
+    const sineGain = ctx.createGain();
+    sineOsc.type = 'triangle';
+    sineOsc.frequency.setValueAtTime(freq * 1.6, startTime);
+
+    const decay = 0.12;
+    sineGain.gain.setValueAtTime(peak * 0.9, startTime);
+    sineGain.gain.exponentialRampToValueAtTime(0.0001, startTime + decay);
+
+    sineOsc.connect(sineGain).connect(panner);
+    sineOsc.start(startTime);
+    sineOsc.stop(startTime + decay + 0.02);
+    addNode(sineOsc);
+    addNode(sineGain);
+
+    // Noise tap at attack
+    const noise = createNoiseNode(ctx, 0.04);
+    const noiseFilter = ctx.createBiquadFilter();
+    const noiseGain = ctx.createGain();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(freq * 2.5, startTime);
+    noiseFilter.Q.setValueAtTime(2, startTime);
+    noiseGain.gain.setValueAtTime(peak * 0.4, startTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.03);
+
+    noise.connect(noiseFilter).connect(noiseGain).connect(panner);
+    noise.start(startTime);
+    addNode(noise);
+    addNode(noiseFilter);
+    addNode(noiseGain);
+  },
+
+  chime: ({ ctx, panner, freq, startTime, peak, addNode }) => {
+    // Bell-like additive synthesis with inharmonic overtones.
+    const partials = [
+      { mult: 1, gain: 0.7 },
+      { mult: 2.01, gain: 0.35 },
+      { mult: 3.04, gain: 0.18 },
+      { mult: 4.7, gain: 0.08 }
+    ];
+    const decay = 0.6;
+    for (const p of partials) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * p.mult, startTime);
+      gain.gain.setValueAtTime(peak * p.gain * 0.7, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + decay * (1 - 0.05 * p.mult));
+      osc.connect(gain).connect(panner);
+      osc.start(startTime);
+      osc.stop(startTime + decay + 0.05);
+      addNode(osc);
+      addNode(gain);
+    }
+  },
+
+  pluck: ({ ctx, panner, freq, startTime, peak, addNode }) => {
+    // Plucked-string-ish: sine + saw with fast exponential decay.
+    const decay = 0.18;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    osc1.type = 'sine';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(freq, startTime);
+    osc2.frequency.setValueAtTime(freq, startTime);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(freq * 4, startTime);
+    filter.frequency.exponentialRampToValueAtTime(freq * 1.2, startTime + decay);
+
+    gain.gain.setValueAtTime(peak * 0.85, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + decay);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain).connect(panner);
+    osc1.start(startTime);
+    osc2.start(startTime);
+    osc1.stop(startTime + decay + 0.02);
+    osc2.stop(startTime + decay + 0.02);
+    addNode(osc1);
+    addNode(osc2);
+    addNode(filter);
+    addNode(gain);
+  }
+};
+
+function createNoiseNode(ctx: AudioContext, durationSec: number): AudioBufferSourceNode {
+  const sampleRate = ctx.sampleRate;
+  const length = Math.max(1, Math.floor(sampleRate * durationSec));
+  const buf = ctx.createBuffer(1, length, sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  return src;
 }

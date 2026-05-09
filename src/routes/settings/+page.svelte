@@ -1,7 +1,7 @@
 <script lang="ts">
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
-  import { SESSION_LIMITS } from '$lib/session/types.js';
+  import { SESSION_LIMITS, AUDIO_VOICES } from '$lib/session/types.js';
   import type { Preset } from '$lib/presets/schema.js';
 
   const sessionState = sessionController.state;
@@ -185,8 +185,9 @@
       <label>
         <span class="lab">Voice</span>
         <select bind:value={working.audio.voice}>
-          <option value="sine">Sine tone</option>
-          <option value="click">Click</option>
+          {#each AUDIO_VOICES as v}
+            <option value={v.value} title={v.description}>{v.label}</option>
+          {/each}
         </select>
       </label>
     </div>

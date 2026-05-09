@@ -34,7 +34,7 @@ const audioSchema = z.object({
     .max(SESSION_LIMITS.frequencyHzMax),
   volume: z.number().min(0).max(1),
   panWidth: z.number().min(0).max(1),
-  voice: z.enum(['sine', 'click'])
+  voice: z.enum(['sine', 'soft', 'tone', 'click', 'woodblock', 'chime', 'pluck'])
 });
 
 export const presetSchema = z.object({
