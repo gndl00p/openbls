@@ -1,10 +1,10 @@
 import type { Preset } from './schema.js';
 import { PresetSchemaVersion } from './schema.js';
 
-const TARGET_DEFAULT = { shape: 'circle' as const, sizePx: 28, color: '#5b8def' };
-const TARGET_SOFT = { shape: 'dot' as const, sizePx: 22, color: '#9ab1d8' };
-const BG_STANDARD = { color: '#0e0e10', contrast: 'standard' as const };
-const BG_REDUCED = { color: '#15151b', contrast: 'reduced' as const };
+const TARGET_DEFAULT = { shape: 'circle' as const, sizePx: 32, color: '#d4a04a' };
+const TARGET_SOFT = { shape: 'dot' as const, sizePx: 22, color: '#c8c0b1' };
+const BG_STANDARD = { color: '#0c0c0d', contrast: 'standard' as const };
+const BG_REDUCED = { color: '#15140f', contrast: 'reduced' as const };
 
 export const BUILT_IN_PRESETS: Preset[] = [
   {

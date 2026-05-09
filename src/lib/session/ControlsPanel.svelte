@@ -9,14 +9,6 @@
   let { open = $bindable(true) }: { open?: boolean } = $props();
   let savedMessage = $state('');
 
-  // Apply edits by mutating a clone of the active preset and pushing it back
-  // through the session controller. The controller restarts the engine/renderer
-  // automatically if a session is running.
-  function update<K extends keyof Preset>(key: K, value: Preset[K]) {
-    const next: Preset = { ...$sessionState.preset, [key]: value } as Preset;
-    sessionController.setPreset(next);
-  }
-
   function updateVisual<K extends keyof Preset['visual']>(key: K, value: Preset['visual'][K]) {
     const next: Preset = {
       ...$sessionState.preset,
@@ -77,37 +69,60 @@
   let audio = $derived(preset.audio);
 </script>
 
-<div class="panel" class:open>
+<aside class="panel" class:open>
   <button class="toggle" type="button" onclick={() => (open = !open)} aria-expanded={open}>
-    {open ? '› Controls' : '‹ Controls'}
+    <span class="toggle-icon" aria-hidden="true">{open ? '›' : '‹'}</span>
+    <span class="toggle-label">Controls</span>
   </button>
 
   {#if open}
     <div class="body">
-      <div class="badge">{preset.name}{preset.builtin ? '' : ' ★'}</div>
+      <div class="head">
+        <span class="section-label">Active</span>
+        <div class="active-name">
+          {preset.name}{#if !preset.builtin}<span class="star">★</span>{/if}
+        </div>
+        {#if preset.description}
+          <p class="active-desc">{preset.description}</p>
+        {/if}
+      </div>
+
+      <div class="hairline"></div>
 
       <fieldset>
         <legend>Visual</legend>
 
-        <label>
-          <span>Path</span>
+        <div class="row toggle-row">
+          <span>Visual on</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              checked={visual.enabled}
+              onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
+            />
+          </label>
+        </div>
+
+        <div class="row stack">
+          <span class="lab">Path</span>
           <select
             value={visual.path}
             onchange={(e) =>
               updateVisual('path', (e.currentTarget as HTMLSelectElement).value as Preset['visual']['path'])}
           >
-            <option value="horizontal">Horizontal</option>
-            <option value="vertical">Vertical</option>
-            <option value="diagonal">Diagonal</option>
-            <option value="circular">Circular</option>
-            <option value="figure-eight">Figure-eight</option>
+            <option value="horizontal">Horizontal —</option>
+            <option value="vertical">Vertical |</option>
+            <option value="diagonal">Diagonal ⟋</option>
+            <option value="circular">Circular ◯</option>
+            <option value="figure-eight">Figure-eight ∞</option>
           </select>
-        </label>
+        </div>
 
-        <label>
-          <span>
-            Speed <small>{visual.speedHz.toFixed(2)} Hz</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Speed</span>
+            <span class="readout-small numeric">{visual.speedHz.toFixed(2)} Hz</span>
+          </div>
           <input
             type="range"
             min={SESSION_LIMITS.speedHzMin}
@@ -117,12 +132,13 @@
             oninput={(e) =>
               updateVisual('speedHz', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>
-            Set length <small>{visual.setLength} sweeps</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Set length</span>
+            <span class="readout-small numeric">{visual.setLength}</span>
+          </div>
           <input
             type="range"
             min={SESSION_LIMITS.setLengthMin}
@@ -132,37 +148,37 @@
             oninput={(e) =>
               updateVisual('setLength', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>Visual on</span>
-          <input
-            type="checkbox"
-            checked={visual.enabled}
-            onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
-          />
-        </label>
+        <div class="row stack">
+          <span class="lab">Target</span>
+          <div class="row inline">
+            <select
+              value={visual.target.shape}
+              onchange={(e) =>
+                updateTarget(
+                  'shape',
+                  (e.currentTarget as HTMLSelectElement).value as Preset['visual']['target']['shape']
+                )}
+            >
+              <option value="circle">Circle</option>
+              <option value="dot">Dot</option>
+              <option value="ring">Ring</option>
+            </select>
+            <input
+              type="color"
+              value={visual.target.color}
+              oninput={(e) => updateTarget('color', (e.currentTarget as HTMLInputElement).value)}
+              aria-label="Target color"
+            />
+          </div>
+        </div>
 
-        <label>
-          <span>Target shape</span>
-          <select
-            value={visual.target.shape}
-            onchange={(e) =>
-              updateTarget(
-                'shape',
-                (e.currentTarget as HTMLSelectElement).value as Preset['visual']['target']['shape']
-              )}
-          >
-            <option value="circle">Circle</option>
-            <option value="dot">Dot</option>
-            <option value="ring">Ring</option>
-          </select>
-        </label>
-
-        <label>
-          <span>
-            Target size <small>{visual.target.sizePx}px</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Target size</span>
+            <span class="readout-small numeric">{visual.target.sizePx}px</span>
+          </div>
           <input
             type="range"
             min="8"
@@ -172,58 +188,50 @@
             oninput={(e) =>
               updateTarget('sizePx', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>Target color</span>
-          <input
-            type="color"
-            value={visual.target.color}
-            oninput={(e) => updateTarget('color', (e.currentTarget as HTMLInputElement).value)}
-          />
-        </label>
-
-        <label>
-          <span>Background</span>
-          <input
-            type="color"
-            value={visual.background.color}
-            oninput={(e) => updateBackground('color', (e.currentTarget as HTMLInputElement).value)}
-          />
-        </label>
-
-        <label>
-          <span>Contrast</span>
-          <select
-            value={visual.background.contrast}
-            onchange={(e) =>
-              updateBackground(
-                'contrast',
-                (e.currentTarget as HTMLSelectElement)
-                  .value as Preset['visual']['background']['contrast']
-              )}
-          >
-            <option value="high">High</option>
-            <option value="standard">Standard</option>
-            <option value="reduced">Reduced</option>
-          </select>
-        </label>
+        <div class="row stack">
+          <span class="lab">Background</span>
+          <div class="row inline">
+            <select
+              value={visual.background.contrast}
+              onchange={(e) =>
+                updateBackground(
+                  'contrast',
+                  (e.currentTarget as HTMLSelectElement)
+                    .value as Preset['visual']['background']['contrast']
+                )}
+            >
+              <option value="high">High</option>
+              <option value="standard">Standard</option>
+              <option value="reduced">Reduced</option>
+            </select>
+            <input
+              type="color"
+              value={visual.background.color}
+              oninput={(e) => updateBackground('color', (e.currentTarget as HTMLInputElement).value)}
+              aria-label="Background color"
+            />
+          </div>
+        </div>
       </fieldset>
 
       <fieldset>
         <legend>Audio</legend>
 
-        <label>
+        <div class="row toggle-row">
           <span>Audio on</span>
-          <input
-            type="checkbox"
-            checked={audio.enabled}
-            onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
-          />
-        </label>
+          <label class="switch">
+            <input
+              type="checkbox"
+              checked={audio.enabled}
+              onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
+            />
+          </label>
+        </div>
 
-        <label>
-          <span>Voice</span>
+        <div class="row stack">
+          <span class="lab">Voice</span>
           <select
             value={audio.voice}
             onchange={(e) =>
@@ -235,12 +243,13 @@
             <option value="sine">Sine tone</option>
             <option value="click">Click</option>
           </select>
-        </label>
+        </div>
 
-        <label>
-          <span>
-            Frequency <small>{audio.frequencyHz} Hz</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Frequency</span>
+            <span class="readout-small numeric">{audio.frequencyHz} Hz</span>
+          </div>
           <input
             type="range"
             min={SESSION_LIMITS.frequencyHzMin}
@@ -250,12 +259,13 @@
             oninput={(e) =>
               updateAudio('frequencyHz', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>
-            Volume <small>{Math.round(audio.volume * 100)}%</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Volume</span>
+            <span class="readout-small numeric">{Math.round(audio.volume * 100)}%</span>
+          </div>
           <input
             type="range"
             min="0"
@@ -265,12 +275,13 @@
             oninput={(e) =>
               updateAudio('volume', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>
-            Pan width <small>{Math.round(audio.panWidth * 100)}%</small>
-          </span>
+        <div class="row stack">
+          <div class="row label-row">
+            <span class="lab">Pan width</span>
+            <span class="readout-small numeric">{Math.round(audio.panWidth * 100)}%</span>
+          </div>
           <input
             type="range"
             min="0"
@@ -280,133 +291,223 @@
             oninput={(e) =>
               updateAudio('panWidth', Number((e.currentTarget as HTMLInputElement).value))}
           />
-        </label>
+        </div>
       </fieldset>
 
-      <div class="actions">
-        <button onclick={saveAsCustom}>Save as preset</button>
+      <div class="footer">
+        <button class="primary" onclick={saveAsCustom}>Save as preset</button>
         <a href="/settings" class="link">Full settings →</a>
+        {#if savedMessage}
+          <div class="ok">{savedMessage}</div>
+        {/if}
       </div>
 
-      {#if savedMessage}<div class="ok">{savedMessage}</div>{/if}
       <p class="hint">
-        Live changes restart the audio engine briefly. Sweep counter resets when set length changes.
+        Live changes restart the audio engine briefly. Sweep counter resets on set-length change.
       </p>
     </div>
   {/if}
-</div>
+</aside>
 
 <style>
   .panel {
     position: absolute;
     top: 1rem;
     right: 0;
-    background: rgba(22, 22, 26, 0.96);
-    border: 1px solid var(--border, #26262c);
-    border-radius: 12px 0 0 12px;
-    border-right: none;
-    color: var(--fg, #e6e6e6);
-    z-index: 50;
-    max-width: min(360px, 90vw);
-    backdrop-filter: blur(6px);
+    background: linear-gradient(to bottom, rgba(19, 18, 20, 0.96), rgba(12, 12, 13, 0.96));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-left: 1px solid var(--rule-strong);
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule-strong);
+    color: var(--fg);
+    z-index: 10;
+    max-width: min(360px, 92vw);
+    box-shadow: -10px 0 30px -6px rgba(0, 0, 0, 0.5);
   }
-  .panel.open {
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  }
+
   .toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     background: transparent;
     border: none;
-    color: var(--fg, #e6e6e6);
-    padding: 0.6rem 0.9rem;
-    font-size: 0.85rem;
+    border-bottom: 1px solid var(--rule);
+    color: var(--fg-soft);
+    padding: 0.7rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
     cursor: pointer;
     width: 100%;
     text-align: left;
-    border-bottom: 1px solid var(--border, #26262c);
+    transition: color var(--dur) var(--ease);
   }
   .panel:not(.open) .toggle {
     border-bottom: none;
-    border-radius: 12px 0 0 12px;
   }
+  .toggle:hover {
+    color: var(--accent);
+    border-color: var(--rule);
+  }
+  .toggle:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .toggle-icon {
+    color: var(--accent);
+    font-size: 1rem;
+  }
+
   .body {
-    padding: 0.75rem 1rem 1rem 1rem;
-    max-height: calc(100vh - 8rem);
+    padding: 1rem 1.1rem 1.1rem 1.1rem;
+    max-height: calc(100vh - 9rem);
     overflow-y: auto;
+    width: 360px;
   }
-  .badge {
+
+  .head {
+    margin-bottom: 0.85rem;
+  }
+  .head .section-label {
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+  .active-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--fg);
+    letter-spacing: -0.005em;
+    font-variation-settings: 'opsz' 18;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .active-name .star {
+    color: var(--accent);
     font-size: 0.85rem;
-    color: var(--fg-dim, #9a9aa3);
-    margin-bottom: 0.5rem;
   }
+  .active-desc {
+    font-size: 0.78rem;
+    color: var(--fg-dim);
+    line-height: 1.45;
+    margin: 0.4rem 0 0 0;
+  }
+
+  .hairline {
+    height: 1px;
+    background: var(--rule);
+    margin: 0.85rem -1.1rem;
+  }
+
   fieldset {
-    border: 1px solid var(--border, #26262c);
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem 0.75rem 0.75rem;
-    margin: 0 0 0.75rem 0;
+    border: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
   }
   legend {
+    font-family: var(--font-mono);
     text-transform: uppercase;
+    letter-spacing: 0.16em;
     font-size: 0.7rem;
-    letter-spacing: 0.06em;
-    color: var(--fg-dim, #9a9aa3);
-    padding: 0 0.4rem;
+    color: var(--accent);
+    padding: 0;
+    margin-bottom: 0.65rem;
+    width: 100%;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.4rem;
   }
-  label {
+
+  .row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin: 0.4rem 0;
-    font-size: 0.85rem;
+    margin: 0.5rem 0;
   }
-  label span {
-    color: var(--fg-dim, #9a9aa3);
-    display: flex;
+  .row.stack {
     flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
   }
-  label small {
-    color: var(--fg, #e6e6e6);
-    font-size: 0.75rem;
-    margin-top: 0.05rem;
+  .row.label-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0;
   }
-  input[type='range'] {
-    width: 160px;
+  .row.inline {
+    flex-direction: row;
+    gap: 0.5rem;
   }
-  input[type='color'] {
-    width: 60px;
-    height: 28px;
-    padding: 0;
-    border: 1px solid var(--border, #26262c);
-    background: transparent;
+  .row.inline > select {
+    flex: 1;
+  }
+
+  .toggle-row {
+    justify-content: space-between;
+  }
+  .toggle-row > span {
+    color: var(--fg-soft);
+  }
+
+  .lab {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg-dim);
+  }
+  .readout-small {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--fg);
+  }
+
+  .switch {
     cursor: pointer;
   }
-  select {
-    min-width: 120px;
-  }
-  .actions {
+
+  .footer {
     display: flex;
-    gap: 0.5rem;
     align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
     margin-top: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--rule);
+  }
+  .footer .primary {
+    flex: 1;
+    min-width: 0;
   }
   .link {
-    color: var(--accent, #5b8def);
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
     text-decoration: none;
-    margin-left: auto;
+    white-space: nowrap;
   }
   .link:hover {
-    text-decoration: underline;
+    color: var(--accent-bright);
   }
   .ok {
-    color: var(--ok, #4caf50);
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
+    color: var(--ok);
+    font-size: 0.78rem;
+    width: 100%;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
   .hint {
-    color: var(--fg-dim, #9a9aa3);
-    font-size: 0.75rem;
-    margin: 0.5rem 0 0 0;
-    line-height: 1.4;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg-faint);
+    line-height: 1.55;
+    margin: 0.85rem 0 0 0;
   }
 </style>

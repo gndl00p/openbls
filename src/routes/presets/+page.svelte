@@ -52,17 +52,19 @@
 </script>
 
 <section class="presets">
-  <header>
+  <header class="page-head">
+    <span class="section-label">Library</span>
     <h1>Presets</h1>
     <p class="hint">
-      Built-in presets are read-only. Duplicate one, edit in Settings, then save back here. Custom
-      presets are stored locally and never leave this device.
+      Built-in presets are read-only. Duplicate one, tune it in the Controls panel or Settings page,
+      then save back here. Custom presets are stored on this device only.
     </p>
   </header>
 
-  <div class="actions">
+  <div class="actions-bar">
     <label class="import-btn">
-      Import preset…
+      <span class="plus" aria-hidden="true">+</span>
+      Import preset
       <input type="file" accept=".json,application/json" onchange={handleImport} hidden />
     </label>
     {#if importError}
@@ -70,30 +72,52 @@
     {/if}
   </div>
 
-  <ul>
-    {#each $all as p}
+  <ul class="catalog">
+    {#each $all, idx}{/each}
+    {#each $all as p, i}
       <li class:builtin={p.builtin}>
-        <div>
-          <div class="name">
-            {p.name}
+        <div class="seq numeric">{String(i + 1).padStart(2, '0')}</div>
+
+        <div class="meta-col">
+          <div class="name-row">
+            <span class="name">{p.name}</span>
             {#if p.builtin}<span class="tag">built-in</span>{/if}
-            {#if p.guide === 'butterfly-hug'}<span class="tag accent">guide</span>{/if}
+            {#if !p.builtin}<span class="tag tag-accent">custom ★</span>{/if}
+            {#if p.guide === 'butterfly-hug'}<span class="tag tag-accent">guide</span>{/if}
           </div>
-          {#if p.description}<div class="desc">{p.description}</div>{/if}
-          <div class="meta">
-            {p.visual.enabled ? `${p.visual.path}, ${p.visual.speedHz} Hz` : 'visual off'}
-            ·
-            {p.audio.enabled ? `audio ${p.audio.frequencyHz} Hz` : 'audio off'}
-            ·
-            {p.visual.setLength} sweeps × {p.visual.setCount ?? '∞'}
+          {#if p.description}
+            <p class="desc">{p.description}</p>
+          {/if}
+          <div class="specs">
+            <span class="spec">
+              <span class="spec-label">Path</span>
+              <span class="spec-val">{p.visual.enabled ? p.visual.path : 'off'}</span>
+            </span>
+            <span class="spec">
+              <span class="spec-label">Speed</span>
+              <span class="spec-val numeric">{p.visual.enabled ? `${p.visual.speedHz} Hz` : '—'}</span>
+            </span>
+            <span class="spec">
+              <span class="spec-label">Audio</span>
+              <span class="spec-val numeric"
+                >{p.audio.enabled ? `${p.audio.frequencyHz} Hz · ${p.audio.voice}` : 'off'}</span
+              >
+            </span>
+            <span class="spec">
+              <span class="spec-label">Sets</span>
+              <span class="spec-val numeric">
+                {p.visual.setLength} × {p.visual.setCount ?? '∞'}
+              </span>
+            </span>
           </div>
         </div>
-        <div class="row">
-          <button onclick={() => makeActive(p)}>Use</button>
-          <button onclick={() => duplicate(p)}>Duplicate</button>
-          <button onclick={() => exportPreset(p)}>Export</button>
+
+        <div class="row-actions">
+          <button class="ghost" onclick={() => makeActive(p)}>Use</button>
+          <button class="ghost" onclick={() => duplicate(p)}>Duplicate</button>
+          <button class="ghost" onclick={() => exportPreset(p)}>Export</button>
           {#if !p.builtin}
-            <button class="danger" onclick={() => remove(p)}>Delete</button>
+            <button class="ghost danger" onclick={() => remove(p)}>Delete</button>
           {/if}
         </div>
       </li>
@@ -103,89 +127,172 @@
 
 <style>
   .presets {
-    max-width: 900px;
+    max-width: 1080px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 3rem 2rem 4rem 2rem;
   }
-  header h1 {
-    margin: 0 0 0.25rem 0;
+  .page-head {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 2.5rem;
   }
-  .hint {
-    color: var(--fg-dim, #9a9aa3);
-    margin: 0 0 1.5rem 0;
+  .page-head h1 {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 144, 'SOFT' 25;
   }
-  .actions {
+  .page-head .hint {
+    color: var(--fg-dim);
+    max-width: 60ch;
+    margin: 0.4rem 0 0 0;
+  }
+
+  .actions-bar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--rule);
   }
   .import-btn {
-    background: var(--panel, #16161a);
-    border: 1px solid var(--border, #26262c);
-    border-radius: 6px;
-    padding: 0.5rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg);
     cursor: pointer;
-    color: var(--fg, #e6e6e6);
+    transition:
+      border-color var(--dur) var(--ease),
+      color var(--dur) var(--ease);
+  }
+  .import-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .plus {
+    color: var(--accent);
+    font-size: 1rem;
+    line-height: 1;
   }
   .err {
-    color: var(--danger, #c75555);
-    font-size: 0.85rem;
+    color: var(--danger);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
   }
-  ul {
+
+  .catalog {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    border-top: 1px solid var(--rule);
   }
-  li {
-    background: var(--panel, #16161a);
-    border: 1px solid var(--border, #26262c);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
+  .catalog li {
+    display: grid;
+    grid-template-columns: 3rem 1fr auto;
+    gap: 1.5rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: start;
+  }
+
+  .seq {
+    font-size: 0.85rem;
+    color: var(--accent-dim);
+    padding-top: 0.25rem;
+  }
+
+  .name-row {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
+    align-items: baseline;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
   }
   .name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
     font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+    font-variation-settings: 'opsz' 24;
   }
   .tag {
-    font-size: 0.7rem;
+    font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: rgba(154, 154, 163, 0.15);
-    color: var(--fg-dim, #9a9aa3);
+    letter-spacing: 0.12em;
+    font-size: 0.62rem;
     padding: 0.1rem 0.4rem;
-    border-radius: 999px;
+    border: 1px solid var(--rule-strong);
+    color: var(--fg-dim);
   }
-  .tag.accent {
-    background: rgba(91, 141, 239, 0.18);
-    color: var(--accent, #5b8def);
+  .tag-accent {
+    color: var(--accent);
+    border-color: var(--accent-dim);
   }
+
   .desc {
-    color: var(--fg-dim, #9a9aa3);
-    font-size: 0.9rem;
-    margin: 0.2rem 0 0.4rem 0;
+    color: var(--fg-soft);
+    font-size: 0.92rem;
+    margin: 0.25rem 0 0.6rem 0;
+    line-height: 1.5;
+    max-width: 60ch;
   }
-  .meta {
-    color: var(--fg-dim, #9a9aa3);
-    font-size: 0.8rem;
-  }
-  .row {
+
+  .specs {
     display: flex;
+    flex-wrap: wrap;
+    gap: 1.3rem;
+    margin-top: 0.4rem;
+  }
+  .spec {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+  }
+  .spec-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.62rem;
+    color: var(--fg-dim);
+  }
+  .spec-val {
+    font-size: 0.82rem;
+    color: var(--fg);
+  }
+
+  .row-actions {
+    display: flex;
+    flex-direction: row;
     gap: 0.4rem;
     flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-end;
   }
-  button.danger {
-    color: var(--danger, #c75555);
-    border-color: var(--danger, #c75555);
+  .row-actions button {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.35rem 0.7rem;
+  }
+
+  @media (max-width: 720px) {
+    .catalog li {
+      grid-template-columns: 2.5rem 1fr;
+    }
+    .row-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      padding-left: 4rem;
+    }
   }
 </style>

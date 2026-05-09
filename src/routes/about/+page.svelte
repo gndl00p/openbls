@@ -3,79 +3,127 @@
 </script>
 
 <section class="about">
-  <h1>About OpenBLS</h1>
+  <header class="page-head">
+    <span class="section-label">About</span>
+    <h1>OpenBLS</h1>
+    <p class="lede">{SAFETY_COPY.appTagline}</p>
+  </header>
 
-  <p class="lede">{SAFETY_COPY.appTagline}</p>
+  <article class="block">
+    <span class="section-label">§ 1 &nbsp; What this is</span>
+    <p>
+      OpenBLS is a free, open-source desktop and web tool that delivers configurable visual and
+      audio bilateral-stimulation patterns for use by licensed clinicians inside their practices.
+      Intentionally narrow in scope: it produces stimulation patterns. No therapy-content layer,
+      no guided protocol, no client-data tracking.
+    </p>
+  </article>
 
-  <h2>What this is</h2>
-  <p>
-    OpenBLS is a free, open-source desktop and web tool that delivers configurable visual and audio
-    bilateral-stimulation patterns for use by licensed clinicians inside their practices. It is
-    intentionally narrow in scope: it produces stimulation patterns. It does not include any
-    therapy-content layer, any guided protocol, or any client-data tracking.
-  </p>
+  <article class="block">
+    <span class="section-label">§ 2 &nbsp; What this is not</span>
+    <p>{SAFETY_COPY.disclaimerHeadline}</p>
+  </article>
 
-  <h2>What this is not</h2>
-  <p>{SAFETY_COPY.disclaimerHeadline}</p>
+  <article class="block">
+    <span class="section-label">§ 3 &nbsp; If you are not a clinician</span>
+    <p>{SAFETY_COPY.nonClinicianRouting}</p>
+    <p class="links">
+      <a href={SAFETY_COPY.emdriaDirectoryUrl} target="_blank" rel="noopener noreferrer">
+        EMDRIA find-a-therapist
+      </a>
+      <span class="sep">·</span>
+      <a href={SAFETY_COPY.emdrEuropeUrl} target="_blank" rel="noopener noreferrer">
+        EMDR Europe
+      </a>
+    </p>
+  </article>
 
-  <h2>If you are not a clinician</h2>
-  <p>{SAFETY_COPY.nonClinicianRouting}</p>
-  <p>
-    <a href={SAFETY_COPY.emdriaDirectoryUrl} target="_blank" rel="noopener noreferrer">
-      EMDRIA find-a-therapist directory
-    </a>
-    ·
-    <a href={SAFETY_COPY.emdrEuropeUrl} target="_blank" rel="noopener noreferrer">
-      EMDR Europe
-    </a>
-  </p>
+  <article class="block">
+    <span class="section-label">§ 4 &nbsp; Privacy</span>
+    <p>
+      No accounts, no cloud, no telemetry, no outbound network requests at runtime. Settings and
+      custom presets persist to your local device only. The crash handler shows reports locally and
+      lets you decide whether to file them on GitHub. Nothing is sent automatically.
+    </p>
+  </article>
 
-  <h2>Privacy</h2>
-  <p>
-    No accounts, no cloud, no telemetry, no outbound network requests at runtime. Settings and
-    custom presets persist to your local device only. The crash handler shows reports locally and
-    lets you decide whether to file them on GitHub. Nothing is sent automatically.
-  </p>
+  <article class="block">
+    <span class="section-label">§ 5 &nbsp; License & contribution</span>
+    <p>
+      Apache-2.0. Source and contribution guide at
+      <a href="https://github.com/gndl00p/openbls" target="_blank" rel="noopener noreferrer"
+        >github.com/gndl00p/openbls</a
+      >.
+    </p>
+  </article>
 
-  <h2>License & contribution</h2>
-  <p>
-    Apache-2.0. Source and contribution guide:
-    <a href="https://github.com/gndl00p/openbls" target="_blank" rel="noopener noreferrer">
-      github.com/gndl00p/openbls
-    </a>
-  </p>
-
-  <h2>Trademark</h2>
-  <p>
-    OpenBLS is unaffiliated with the EMDR Institute, EMDRIA, EMDR Europe, or any other trademark
-    holder. “BLS” stands for bilateral stimulation, a generic term.
-  </p>
+  <article class="block">
+    <span class="section-label">§ 6 &nbsp; Trademark</span>
+    <p>
+      OpenBLS is unaffiliated with the EMDR Institute, EMDRIA, EMDR Europe, or any other trademark
+      holder. <em>BLS</em> stands for bilateral stimulation, a generic term.
+    </p>
+  </article>
 </section>
 
 <style>
   .about {
     max-width: 720px;
     margin: 0 auto;
-    padding: 1.5rem;
-    line-height: 1.55;
+    padding: 3rem 2rem 4rem 2rem;
   }
-  h1 {
-    margin: 0 0 0.5rem 0;
+  .page-head {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 2rem;
+  }
+  .page-head h1 {
+    font-size: clamp(3rem, 7vw, 5rem);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 1;
   }
   .lede {
-    font-size: 1.05rem;
-    color: var(--fg, #e6e6e6);
-    margin: 0 0 1.5rem 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--fg-soft);
+    margin: 0.5rem 0 0 0;
+    max-width: 50ch;
+    font-variation-settings: 'opsz' 14;
   }
-  h2 {
-    margin-top: 1.5rem;
-    margin-bottom: 0.4rem;
+
+  .block {
+    border-top: 1px solid var(--rule);
+    padding: 1.5rem 0;
+  }
+  .block:last-child {
+    border-bottom: 1px solid var(--rule);
+  }
+  .block .section-label {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: var(--accent-dim);
+  }
+  .block p {
+    color: var(--fg-soft);
     font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--fg-dim, #9a9aa3);
+    line-height: 1.6;
+    margin: 0 0 0.5rem 0;
+    max-width: 60ch;
   }
-  a {
-    color: var(--accent, #5b8def);
+
+  .links {
+    margin-top: 0.6rem;
+  }
+  .links .sep {
+    color: var(--rule-strong);
+    margin: 0 0.4rem;
+  }
+  em {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: 'opsz' 14;
   }
 </style>

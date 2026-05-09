@@ -6,12 +6,10 @@
 
   const sessionState = sessionController.state;
 
-  // Edits operate on a working copy of the active preset. Save persists as a custom preset.
   let working = $state<Preset>(structuredClone($sessionState.preset));
   let savedMessage = $state('');
 
   $effect(() => {
-    // When the active preset id changes externally, refresh the working copy.
     if ($sessionState.preset.id !== working.id) {
       working = structuredClone($sessionState.preset);
     }
@@ -39,24 +37,29 @@
 </script>
 
 <section class="settings">
-  <header>
-    <h1>Manual settings</h1>
+  <header class="page-head">
+    <span class="section-label">Manual mode</span>
+    <h1>Settings</h1>
     <p class="hint">
       Tune every parameter for the active preset. Apply changes to the current session, or save as a
-      custom preset.
+      new custom preset.
     </p>
   </header>
 
-  <div class="card">
-    <h2>Visual</h2>
+  <article class="card">
+    <header class="card-head">
+      <span class="section-label">Visual</span>
+      <span class="card-meta numeric">{working.visual.path} · {working.visual.speedHz.toFixed(2)} Hz</span>
+    </header>
+
     <div class="grid">
       <label>
-        Enabled
+        <span class="lab">Enabled</span>
         <input type="checkbox" bind:checked={working.visual.enabled} />
       </label>
 
       <label>
-        Path
+        <span class="lab">Path</span>
         <select bind:value={working.visual.path}>
           <option value="horizontal">Horizontal</option>
           <option value="vertical">Vertical</option>
@@ -67,7 +70,7 @@
       </label>
 
       <label>
-        Speed (Hz)
+        <span class="lab">Speed (Hz)</span>
         <input
           type="number"
           step="0.1"
@@ -78,7 +81,7 @@
       </label>
 
       <label>
-        Set length (sweeps)
+        <span class="lab">Set length</span>
         <input
           type="number"
           min={SESSION_LIMITS.setLengthMin}
@@ -88,12 +91,12 @@
       </label>
 
       <label>
-        Set count
+        <span class="lab">Set count</span>
         <input
           type="number"
           min="1"
           max="50"
-          placeholder="open-ended"
+          placeholder="∞"
           value={working.visual.setCount ?? ''}
           oninput={(e) => {
             const v = (e.currentTarget as HTMLInputElement).value;
@@ -103,7 +106,7 @@
       </label>
 
       <label>
-        Target shape
+        <span class="lab">Target shape</span>
         <select bind:value={working.visual.target.shape}>
           <option value="circle">Circle</option>
           <option value="dot">Dot</option>
@@ -112,22 +115,22 @@
       </label>
 
       <label>
-        Target size (px)
+        <span class="lab">Target size (px)</span>
         <input type="number" min="8" max="200" bind:value={working.visual.target.sizePx} />
       </label>
 
       <label>
-        Target color
+        <span class="lab">Target color</span>
         <input type="color" bind:value={working.visual.target.color} />
       </label>
 
       <label>
-        Background color
+        <span class="lab">Background color</span>
         <input type="color" bind:value={working.visual.background.color} />
       </label>
 
       <label>
-        Contrast
+        <span class="lab">Contrast</span>
         <select bind:value={working.visual.background.contrast}>
           <option value="high">High</option>
           <option value="standard">Standard</option>
@@ -135,23 +138,31 @@
         </select>
       </label>
     </div>
-  </div>
+  </article>
 
-  <div class="card">
-    <h2>Audio</h2>
+  <article class="card">
+    <header class="card-head">
+      <span class="section-label">Audio</span>
+      <span class="card-meta numeric"
+        >{working.audio.enabled
+          ? `${working.audio.frequencyHz} Hz · ${working.audio.voice}`
+          : 'off'}</span
+      >
+    </header>
+
     <div class="grid">
       <label>
-        Enabled
+        <span class="lab">Enabled</span>
         <input type="checkbox" bind:checked={working.audio.enabled} />
       </label>
 
       <label>
-        Sync with visual
+        <span class="lab">Sync with visual</span>
         <input type="checkbox" bind:checked={working.audio.syncWithVisual} />
       </label>
 
       <label>
-        Frequency (Hz)
+        <span class="lab">Frequency (Hz)</span>
         <input
           type="number"
           min={SESSION_LIMITS.frequencyHzMin}
@@ -162,24 +173,24 @@
       </label>
 
       <label>
-        Volume
+        <span class="lab">Volume</span>
         <input type="range" min="0" max="1" step="0.01" bind:value={working.audio.volume} />
       </label>
 
       <label>
-        Pan width
+        <span class="lab">Pan width</span>
         <input type="range" min="0" max="1" step="0.01" bind:value={working.audio.panWidth} />
       </label>
 
       <label>
-        Voice
+        <span class="lab">Voice</span>
         <select bind:value={working.audio.voice}>
           <option value="sine">Sine tone</option>
           <option value="click">Click</option>
         </select>
       </label>
     </div>
-  </div>
+  </article>
 
   <footer class="actions">
     <button onclick={applyToSession}>Apply to session</button>
@@ -190,62 +201,89 @@
 
 <style>
   .settings {
-    max-width: 800px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 3rem 2rem 4rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
   }
-  header h1 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.4rem;
+  .page-head {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
   }
-  .hint {
-    color: var(--fg-dim, #9a9aa3);
-    margin: 0;
+  .page-head h1 {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 144, 'SOFT' 25;
   }
+  .page-head .hint {
+    color: var(--fg-dim);
+    max-width: 60ch;
+    margin: 0.4rem 0 0 0;
+  }
+
   .card {
-    background: var(--panel, #16161a);
-    border: 1px solid var(--border, #26262c);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
+    border: 1px solid var(--rule);
+    background: linear-gradient(to bottom, rgba(19, 18, 20, 0.5), rgba(12, 12, 13, 0.5));
   }
-  .card h2 {
-    margin: 0 0 1rem 0;
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--fg-dim, #9a9aa3);
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--rule);
   }
+  .card-meta {
+    font-size: 0.78rem;
+    color: var(--fg-dim);
+  }
+
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0;
   }
-  label {
+  .grid label {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.85rem;
-    color: var(--fg-dim, #9a9aa3);
+    gap: 0.4rem;
+    padding: 0.85rem 1.25rem;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
   }
-  input,
-  select {
-    color: var(--fg, #e6e6e6);
+  /* remove right-border on last column of each row using nth-child math is brittle;
+     use a fade-on-overflow approach via background instead */
+  .grid label:last-child {
+    border-bottom: none;
   }
+  .lab {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg-dim);
+  }
+  .grid input,
+  .grid select {
+    color: var(--fg);
+  }
+
   .actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.6rem;
     align-items: center;
-  }
-  button.primary {
-    background: var(--accent, #5b8def);
-    color: #fff;
-    border-color: var(--accent, #5b8def);
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+    padding: 1rem 0 0 0;
   }
   .ok {
-    color: var(--ok, #4caf50);
-    font-size: 0.85rem;
+    color: var(--ok);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 </style>
