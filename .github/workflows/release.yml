@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -16,6 +19,8 @@ jobs:
           - { os: macos-14, target: 'macos' }
           - { os: windows-latest, target: 'windows' }
     runs-on: ${{ matrix.platform.os }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
