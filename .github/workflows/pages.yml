@@ -1,8 +1,9 @@
 name: Deploy web SPA to GitHub Pages
 
+# Auto-trigger on push is disabled while the repo is private — GH Pages
+# is not available on free private repos. Re-enable the `push` trigger once
+# the repo is public OR the account is on a plan that supports private Pages.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
