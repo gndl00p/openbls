@@ -4,6 +4,10 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Tell the browser this is a dark UI so native widgets (scrollbars, native
+     <option> list popups, color picker) render with dark conventions. */
+  color-scheme: dark;
+
   /* Surfaces */
   --bg: #0c0c0d;
   --bg-elev: #131214;
@@ -331,6 +335,19 @@ select {
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   padding-right: 1.6rem;
+}
+
+/* Native option-list popup: explicit dark colors so options are legible.
+   Chrome/Firefox honor these; Safari uses system colors per color-scheme. */
+select option,
+select optgroup {
+  background: #131214;
+  color: #ede8de;
+}
+select option:checked,
+select option:hover {
+  background: #1f1d1a;
+  color: #e8b35a;
 }
 
 /* ──────────────────────────── Utilities ──────────────────────────── */
