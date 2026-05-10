@@ -54,6 +54,15 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'OpenBLS ${{ github.ref_name }}'
-          releaseBody: 'See CHANGELOG.md for changes.'
+          releaseBody: |
+            Pre-release build of OpenBLS. See [README](https://github.com/gndl00p/openbls#readme) and [DISCLAIMER](https://github.com/gndl00p/openbls/blob/main/DISCLAIMER.md) before use.
+
+            ## Artifacts
+            - Linux: `.deb` and `.AppImage`
+            - macOS: `.dmg` (unsigned — Right-click → Open on first run)
+            - Windows: `.msi`
+
+            ## Web build
+            Hosted SPA: https://gndl00p.github.io/openbls (requires GitHub Pages enable)
           releaseDraft: true
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
