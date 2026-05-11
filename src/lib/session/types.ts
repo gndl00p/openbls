@@ -24,8 +24,6 @@ export const AUDIO_VOICES: { value: AudioVoice; label: string; description: stri
 
 export interface AudioConfig {
   enabled: boolean;
-  /** When true, audio sweeps fire on the same schedule as the visual sweeps. */
-  syncWithVisual: boolean;
   frequencyHz: number; // 200–1200
   volume: number; // 0–1
   /** Stereo width: 0 = center on both channels, 1 = full L/R separation. */
@@ -107,3 +105,15 @@ export const SESSION_LIMITS: SessionLimits = {
   setLengthMax: 200,
   flashRateMaxHz: 3
 };
+
+/** Snap values for the session-length selector. null = open-ended. */
+export const SESSION_LENGTH_CHOICES: { value: number | null; label: string }[] = [
+  { value: null, label: 'Off' },
+  { value: 5, label: '5 min' },
+  { value: 10, label: '10 min' },
+  { value: 15, label: '15 min' },
+  { value: 20, label: '20 min' },
+  { value: 30, label: '30 min' },
+  { value: 45, label: '45 min' },
+  { value: 60, label: '60 min' }
+];

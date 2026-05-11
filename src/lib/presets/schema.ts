@@ -27,7 +27,6 @@ const visualSchema = z.object({
 
 const audioSchema = z.object({
   enabled: z.boolean(),
-  syncWithVisual: z.boolean(),
   frequencyHz: z
     .number()
     .min(SESSION_LIMITS.frequencyHzMin)
@@ -45,6 +44,8 @@ export const presetSchema = z.object({
   description: z.string().max(500).optional(),
   visual: visualSchema,
   audio: audioSchema,
+  /** Auto-stop after this many minutes of running time (pauses don't count). null = open-ended. */
+  sessionMaxMinutes: z.number().int().min(1).max(120).nullable().optional(),
   guide: z.enum(['butterfly-hug']).nullable().optional()
 });
 

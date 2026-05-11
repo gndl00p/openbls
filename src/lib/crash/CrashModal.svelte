@@ -1,5 +1,6 @@
 <script lang="ts">
   import { githubIssueUrl, reportToText, type CrashReport } from './report.js';
+  import { focusTrap } from '$lib/a11y/focus-trap.js';
 
   let { report, onDismiss }: { report: CrashReport; onDismiss: () => void } = $props();
 
@@ -24,7 +25,7 @@
 </script>
 
 <div class="overlay" role="alertdialog" aria-modal="true" aria-labelledby="crash-title">
-  <article class="card">
+  <article class="card" use:focusTrap>
     <header class="head">
       <span class="section-label">Error · captured locally</span>
       <h1 id="crash-title">Something went wrong.</h1>

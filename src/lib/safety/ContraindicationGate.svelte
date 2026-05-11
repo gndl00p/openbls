@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SAFETY_COPY } from './copy.js';
+  import { focusTrap } from '$lib/a11y/focus-trap.js';
 
   let { onAcknowledge }: { onAcknowledge: () => void | Promise<void> } = $props();
 
@@ -18,7 +19,7 @@
 </script>
 
 <div class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
-  <article class="paper">
+  <article class="paper" use:focusTrap>
     <header class="paper-head">
       <div class="meta">
         <span class="seq">No. 01</span>

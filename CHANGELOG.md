@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Session-length auto-stop (`sessionMaxMinutes`) preset field with snap select
+  (Off / 5 / 10 / 15 / 20 / 30 / 45 / 60 min) wired in `ControlsPanel` and
+  `/settings`. Engine tracks elapsed running time (excluding pauses) and
+  auto-stops at threshold.
+- Live `mm:ss` elapsed / remaining readout in the bottom-console counters
+  pillar.
+- `PromptModal` component — in-app modal replacing native `prompt()` for
+  preset naming. Focus-trapped, Enter to submit, Esc to cancel.
+- `focusTrap` Svelte action applied to `ContraindicationGate`, `CrashModal`,
+  and `PromptModal`. Restores prior focus on teardown.
+- Unit tests covering `SessionTimer` pause/resume accumulation, threshold
+  hits, and `formatMmSs`.
+
+### Changed
+- Removed the `audio.syncWithVisual` schema field. It had no effect in the
+  engine. Existing presets with the field validate fine (Zod strips unknown
+  keys); UI no longer surfaces the toggle.
+
 ## [0.1.0-rc.1] — 2026-05-09
 
 First release candidate. Web SPA + cross-platform Tauri desktop builds.

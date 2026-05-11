@@ -13,6 +13,8 @@ export interface SessionState {
   setIndex: number;
   positionInSet: number;
   lastSweepStartedAt: number; // performance.now()
+  /** Total running time in ms (excludes paused intervals). Live during run. */
+  elapsedMs: number;
 }
 
 const FIRST_PRESET = BUILT_IN_PRESETS[0];
@@ -23,7 +25,17 @@ const initial: SessionState = {
   sweepIndex: 0,
   setIndex: 0,
   positionInSet: 0,
-  lastSweepStartedAt: 0
+  lastSweepStartedAt: 0,
+  elapsedMs: 0
+};
+
+/** Provides `performance.now()` — overridable for tests. */
+export interface Clock {
+  now(): number;
+}
+
+const realClock: Clock = {
+  now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 };
 
 export interface SessionController {
@@ -37,9 +49,89 @@ export interface SessionController {
   onSweep: (cb: (e: SweepEvent) => void) => () => void;
 }
 
-export function createSessionController(): SessionController {
+/**
+ * Pure timer-tracking math. Pulled out of the controller so it can be tested
+ * without a Web Audio context. Accumulates ms while running, freezes while
+ * paused, and reports whether the auto-stop threshold has been crossed.
+ */
+export class SessionTimer {
+  #accumulatedMs = 0;
+  #segmentStart: number | null = null;
+  #clock: Clock;
+
+  constructor(clock: Clock = realClock) {
+    this.#clock = clock;
+  }
+
+  start(): void {
+    this.#accumulatedMs = 0;
+    this.#segmentStart = this.#clock.now();
+  }
+
+  pause(): void {
+    if (this.#segmentStart !== null) {
+      this.#accumulatedMs += this.#clock.now() - this.#segmentStart;
+      this.#segmentStart = null;
+    }
+  }
+
+  resume(): void {
+    if (this.#segmentStart === null) {
+      this.#segmentStart = this.#clock.now();
+    }
+  }
+
+  stop(): void {
+    this.#accumulatedMs = 0;
+    this.#segmentStart = null;
+  }
+
+  /** Total running time in milliseconds at the current instant. */
+  elapsedMs(): number {
+    if (this.#segmentStart === null) return this.#accumulatedMs;
+    return this.#accumulatedMs + (this.#clock.now() - this.#segmentStart);
+  }
+
+  /** True iff configured max has been reached. `maxMinutes == null` → never. */
+  isExpired(maxMinutes: number | null | undefined): boolean {
+    if (maxMinutes == null) return false;
+    return this.elapsedMs() >= maxMinutes * 60_000;
+  }
+}
+
+const TIMER_TICK_MS = 250;
+
+export function createSessionController(clock: Clock = realClock): SessionController {
   const state = writable<SessionState>({ ...initial });
   const sweepListeners = new Set<(e: SweepEvent) => void>();
+  const timer = new SessionTimer(clock);
+  let tickHandle: ReturnType<typeof setInterval> | null = null;
+
+  function startTicker() {
+    stopTicker();
+    tickHandle = setInterval(() => {
+      const s = get(state);
+      if (s.status !== 'running') return;
+      const elapsed = timer.elapsedMs();
+      state.update((cur) => ({ ...cur, elapsedMs: elapsed }));
+      if (timer.isExpired(s.preset.sessionMaxMinutes ?? null)) {
+        controllerInternalStop('completed');
+      }
+    }, TIMER_TICK_MS);
+  }
+  function stopTicker() {
+    if (tickHandle !== null) {
+      clearInterval(tickHandle);
+      tickHandle = null;
+    }
+  }
+
+  function controllerInternalStop(finalStatus: SessionStatus) {
+    engine.stop();
+    timer.stop();
+    stopTicker();
+    state.update((s) => ({ ...s, status: finalStatus, elapsedMs: 0 }));
+  }
 
   const engine = new AudioEngine({
     onSweep: (event) => {
@@ -48,13 +140,12 @@ export function createSessionController(): SessionController {
         sweepIndex: event.index,
         setIndex: event.setIndex,
         positionInSet: event.positionInSet,
-        lastSweepStartedAt: performance.now()
+        lastSweepStartedAt: clock.now()
       }));
       for (const cb of sweepListeners) cb(event);
     },
     onComplete: () => {
-      state.update((s) => ({ ...s, status: 'completed' }));
-      engine.stop();
+      controllerInternalStop('completed');
     }
   });
 
@@ -65,10 +156,6 @@ export function createSessionController(): SessionController {
       const wasRunning = get(state).status === 'running';
       state.update((s) => ({ ...s, preset, sweepIndex: 0, setIndex: 0, positionInSet: 0 }));
       if (wasRunning) {
-        // Restart the engine so audio param changes (frequency, voice, volume,
-        // pan width) and timing changes (speed, set length, set count) take
-        // effect immediately. Sweep counter resets to zero — that's the right
-        // behavior since the new preset may have a different set length.
         engine.stop();
         engine.start({
           speedHz: preset.visual.speedHz,
@@ -84,6 +171,7 @@ export function createSessionController(): SessionController {
       const s = get(state);
       const p = s.preset;
       engine.stop();
+      timer.start();
       engine.start({
         speedHz: p.visual.speedHz,
         setLength: p.visual.setLength,
@@ -95,23 +183,26 @@ export function createSessionController(): SessionController {
         status: 'running',
         sweepIndex: 0,
         setIndex: 0,
-        positionInSet: 0
+        positionInSet: 0,
+        elapsedMs: 0
       }));
+      startTicker();
     },
 
     pause(): void {
       engine.pause();
-      state.update((s) => ({ ...s, status: 'paused' }));
+      timer.pause();
+      state.update((s) => ({ ...s, status: 'paused', elapsedMs: timer.elapsedMs() }));
     },
 
     resume(): void {
       engine.resume();
+      timer.resume();
       state.update((s) => ({ ...s, status: 'running' }));
     },
 
     stop(): void {
-      engine.stop();
-      state.update((s) => ({ ...s, status: 'idle' }));
+      controllerInternalStop('idle');
     },
 
     onSweep(cb: (e: SweepEvent) => void): () => void {
@@ -122,3 +213,11 @@ export function createSessionController(): SessionController {
 }
 
 export const sessionController = createSessionController();
+
+/** Helper for mm:ss display. */
+export function formatMmSs(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}

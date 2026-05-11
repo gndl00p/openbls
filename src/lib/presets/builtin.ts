@@ -24,7 +24,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: true,
-      syncWithVisual: true,
       frequencyHz: 440,
       volume: 0.5,
       panWidth: 1.0,
@@ -49,7 +48,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: true,
-      syncWithVisual: true,
       frequencyHz: 440,
       volume: 0.5,
       panWidth: 1.0,
@@ -74,7 +72,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: false,
-      syncWithVisual: true,
       frequencyHz: 320,
       volume: 0.3,
       panWidth: 0.6,
@@ -99,7 +96,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: true,
-      syncWithVisual: false,
       frequencyHz: 440,
       volume: 0.5,
       panWidth: 1.0,
@@ -124,7 +120,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: true,
-      syncWithVisual: true,
       frequencyHz: 440,
       volume: 0.5,
       panWidth: 1.0,
@@ -149,7 +144,6 @@ export const BUILT_IN_PRESETS: Preset[] = [
     },
     audio: {
       enabled: false,
-      syncWithVisual: true,
       frequencyHz: 320,
       volume: 0.3,
       panWidth: 0.4,

@@ -1,13 +1,16 @@
 <script lang="ts">
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
-  import { SESSION_LIMITS, AUDIO_VOICES } from '$lib/session/types.js';
+  import { SESSION_LIMITS, AUDIO_VOICES, SESSION_LENGTH_CHOICES } from '$lib/session/types.js';
   import type { Preset } from '$lib/presets/schema.js';
+  import PromptModal from '$lib/ui/PromptModal.svelte';
 
   const sessionState = sessionController.state;
 
   let working = $state<Preset>(structuredClone($sessionState.preset));
   let savedMessage = $state('');
+  let promptOpen = $state(false);
+  let promptDefault = $state('');
 
   $effect(() => {
     if ($sessionState.preset.id !== working.id) {
@@ -15,12 +18,12 @@
     }
   });
 
-  async function saveAsCustom() {
-    const newName =
-      working.builtin || !working.name
-        ? prompt('Name for this preset', working.builtin ? `${working.name} (custom)` : working.name)
-        : working.name;
-    if (!newName) return;
+  function openSaveAsPrompt() {
+    promptDefault = working.builtin ? `${working.name} (custom)` : working.name;
+    promptOpen = true;
+  }
+
+  async function handleSaveAsSubmit(newName: string) {
     const draft: Preset = { ...working, name: newName };
     const saved = await presetsStore.save(draft);
     working = structuredClone(saved);
@@ -106,6 +109,21 @@
       </label>
 
       <label>
+        <span class="lab">Auto-stop after</span>
+        <select
+          value={String(working.sessionMaxMinutes ?? '')}
+          onchange={(e) => {
+            const v = (e.currentTarget as HTMLSelectElement).value;
+            working.sessionMaxMinutes = v === '' ? null : Number(v);
+          }}
+        >
+          {#each SESSION_LENGTH_CHOICES as choice}
+            <option value={choice.value === null ? '' : String(choice.value)}>{choice.label}</option>
+          {/each}
+        </select>
+      </label>
+
+      <label>
         <span class="lab">Target shape</span>
         <select bind:value={working.visual.target.shape}>
           <option value="circle">Circle</option>
@@ -157,11 +175,6 @@
       </label>
 
       <label>
-        <span class="lab">Sync with visual</span>
-        <input type="checkbox" bind:checked={working.audio.syncWithVisual} />
-      </label>
-
-      <label>
         <span class="lab">Frequency (Hz)</span>
         <input
           type="number"
@@ -195,10 +208,20 @@
 
   <footer class="actions">
     <button onclick={applyToSession}>Apply to session</button>
-    <button class="primary" onclick={saveAsCustom}>Save as custom preset</button>
+    <button class="primary" onclick={openSaveAsPrompt}>Save as custom preset</button>
     {#if savedMessage}<span class="ok">{savedMessage}</span>{/if}
   </footer>
 </section>
+
+<PromptModal
+  bind:open={promptOpen}
+  title="Save preset"
+  label="Preset name"
+  placeholder="e.g. My Standard"
+  defaultValue={promptDefault}
+  confirmLabel="Save"
+  onSubmit={handleSaveAsSubmit}
+/>
 
 <style>
   .settings {

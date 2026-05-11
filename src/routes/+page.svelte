@@ -3,7 +3,7 @@
   import SessionCanvas from '$lib/visual/SessionCanvas.svelte';
   import ButterflyHugGuide from '$lib/butterfly-hug/ButterflyHugGuide.svelte';
   import ControlsPanel from '$lib/session/ControlsPanel.svelte';
-  import { sessionController } from '$lib/stores/session.js';
+  import { sessionController, formatMmSs } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
   import type { Preset } from '$lib/presets/schema.js';
 
@@ -90,6 +90,13 @@
   let displaySweep = $derived(
     Math.min($sessionState.positionInSet + (running || paused ? 1 : 0), preset.visual.setLength)
   );
+
+  let elapsedDisplay = $derived(formatMmSs($sessionState.elapsedMs));
+  let remainingDisplay = $derived(() => {
+    const max = preset.sessionMaxMinutes;
+    if (max == null) return null;
+    return formatMmSs(Math.max(0, max * 60_000 - $sessionState.elapsedMs));
+  });
 
   function statusLabel(s: string): string {
     return (
@@ -182,6 +189,15 @@
           <span class="section-label">Sweep</span>
           <span class="big-num numeric">{String(displaySweep).padStart(2, '0')}</span>
           <span class="frac numeric">/ {preset.visual.setLength}</span>
+        </div>
+        <div class="readout time">
+          <span class="section-label">Time</span>
+          <span class="big-num numeric">{elapsedDisplay}</span>
+          {#if remainingDisplay()}
+            <span class="frac numeric">– {remainingDisplay()}</span>
+          {:else}
+            <span class="frac">/ ∞</span>
+          {/if}
         </div>
       </div>
 

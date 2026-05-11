@@ -1,13 +1,16 @@
 <script lang="ts">
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
-  import { SESSION_LIMITS, AUDIO_VOICES } from '$lib/session/types.js';
+  import { SESSION_LIMITS, AUDIO_VOICES, SESSION_LENGTH_CHOICES } from '$lib/session/types.js';
   import type { Preset } from '$lib/presets/schema.js';
+  import PromptModal from '$lib/ui/PromptModal.svelte';
 
   const sessionState = sessionController.state;
 
   let { open = $bindable(true) }: { open?: boolean } = $props();
   let savedMessage = $state('');
+  let promptOpen = $state(false);
+  let promptDefault = $state('');
 
   function updateVisual<K extends keyof Preset['visual']>(key: K, value: Preset['visual'][K]) {
     const next: Preset = {
@@ -50,18 +53,25 @@
     sessionController.setPreset(next);
   }
 
-  async function saveAsCustom() {
-    const proposedName =
+  function openSaveAsPrompt() {
+    promptDefault =
       $sessionState.preset.builtin || !$sessionState.preset.name
         ? `${$sessionState.preset.name} (custom)`
         : $sessionState.preset.name;
-    const newName = prompt('Name for this preset', proposedName);
-    if (!newName) return;
+    promptOpen = true;
+  }
+
+  async function handleSaveAsSubmit(newName: string) {
     const draft: Preset = { ...$sessionState.preset, name: newName };
     const saved = await presetsStore.save(draft);
     sessionController.setPreset(saved);
     savedMessage = `Saved as “${saved.name}”.`;
     setTimeout(() => (savedMessage = ''), 2500);
+  }
+
+  function updateSessionMax(value: number | null) {
+    const next: Preset = { ...$sessionState.preset, sessionMaxMinutes: value };
+    sessionController.setPreset(next);
   }
 
   let preset = $derived($sessionState.preset);
@@ -88,6 +98,25 @@
       </div>
 
       <div class="hairline"></div>
+
+      <fieldset>
+        <legend>Session</legend>
+
+        <div class="row stack">
+          <span class="lab">Auto-stop after</span>
+          <select
+            value={String(preset.sessionMaxMinutes ?? '')}
+            onchange={(e) => {
+              const v = (e.currentTarget as HTMLSelectElement).value;
+              updateSessionMax(v === '' ? null : Number(v));
+            }}
+          >
+            {#each SESSION_LENGTH_CHOICES as choice}
+              <option value={choice.value === null ? '' : String(choice.value)}>{choice.label}</option>
+            {/each}
+          </select>
+        </div>
+      </fieldset>
 
       <fieldset>
         <legend>Visual</legend>
@@ -297,7 +326,7 @@
       </fieldset>
 
       <div class="footer">
-        <button class="primary" onclick={saveAsCustom}>Save as preset</button>
+        <button class="primary" onclick={openSaveAsPrompt}>Save as preset</button>
         <a href="/settings" class="link">Full settings →</a>
         {#if savedMessage}
           <div class="ok">{savedMessage}</div>
@@ -310,6 +339,16 @@
     </div>
   {/if}
 </aside>
+
+<PromptModal
+  bind:open={promptOpen}
+  title="Save preset"
+  label="Preset name"
+  placeholder="e.g. My Standard"
+  defaultValue={promptDefault}
+  confirmLabel="Save"
+  onSubmit={handleSaveAsSubmit}
+/>
 
 <style>
   .panel {
