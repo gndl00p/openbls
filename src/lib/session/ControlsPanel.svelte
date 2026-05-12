@@ -1,16 +1,47 @@
 <script lang="ts">
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
-  import { SESSION_LIMITS, AUDIO_VOICES, SESSION_LENGTH_CHOICES } from '$lib/session/types.js';
+  import { BUILT_IN_PRESETS } from '$lib/presets/builtin.js';
+  import {
+    SESSION_LIMITS,
+    AUDIO_VOICES,
+    SESSION_LENGTH_CHOICES,
+    type VisualPath
+  } from '$lib/session/types.js';
   import type { Preset } from '$lib/presets/schema.js';
   import PromptModal from '$lib/ui/PromptModal.svelte';
 
   const sessionState = sessionController.state;
+  const allPresets = presetsStore.all;
 
   let { open = $bindable(true) }: { open?: boolean } = $props();
   let savedMessage = $state('');
   let promptOpen = $state(false);
   let promptDefault = $state('');
+
+  const SIZE_BUCKETS = [
+    { label: 'S', sizePx: 24 },
+    { label: 'M', sizePx: 48 },
+    { label: 'L', sizePx: 72 },
+    { label: 'XL', sizePx: 108 }
+  ];
+  const BG_SWATCHES = ['#0c0c0d', '#131214', '#1f1d1a', '#0e1320', '#ede8de', '#f5efe2'];
+  const TARGET_SWATCHES = ['#ede8de', '#d4a04a', '#7aa6c8', '#c87e6c', '#a884c8', '#8aa073'];
+  const PATH_GLYPHS: Record<VisualPath, string> = {
+    horizontal: '—',
+    vertical: '|',
+    diagonal: '⟋',
+    circular: '◯',
+    'figure-eight': '∞'
+  };
+  const PATHS: VisualPath[] = ['horizontal', 'vertical', 'diagonal', 'circular', 'figure-eight'];
+  const CONTRAST_LEVELS: Preset['visual']['background']['contrast'][] = ['high', 'standard', 'reduced'];
+  const SHAPES: Preset['visual']['target']['shape'][] = ['circle', 'dot', 'ring'];
+  const SHAPE_GLYPHS: Record<Preset['visual']['target']['shape'], string> = {
+    dot: '●',
+    ring: '◯',
+    circle: '⬤'
+  };
 
   function updateVisual<K extends keyof Preset['visual']>(key: K, value: Preset['visual'][K]) {
     const next: Preset = {
@@ -53,6 +84,11 @@
     sessionController.setPreset(next);
   }
 
+  function updateSessionMax(value: number | null) {
+    const next: Preset = { ...$sessionState.preset, sessionMaxMinutes: value };
+    sessionController.setPreset(next);
+  }
+
   function openSaveAsPrompt() {
     promptDefault =
       $sessionState.preset.builtin || !$sessionState.preset.name
@@ -65,18 +101,58 @@
     const draft: Preset = { ...$sessionState.preset, name: newName };
     const saved = await presetsStore.save(draft);
     sessionController.setPreset(saved);
-    savedMessage = `Saved as “${saved.name}”.`;
-    setTimeout(() => (savedMessage = ''), 2500);
+    flash(`Saved as “${saved.name}”.`);
   }
 
-  function updateSessionMax(value: number | null) {
-    const next: Preset = { ...$sessionState.preset, sessionMaxMinutes: value };
-    sessionController.setPreset(next);
+  function resetToSaved() {
+    const current = $sessionState.preset;
+    const ref = current.builtin
+      ? BUILT_IN_PRESETS.find((p) => p.id === current.id)
+      : $allPresets.find((p) => p.id === current.id && !p.builtin);
+    if (!ref) {
+      const fallback = BUILT_IN_PRESETS[0];
+      sessionController.setPreset(fallback);
+      flash(`Reset to ${fallback.name}.`);
+      return;
+    }
+    sessionController.setPreset(ref);
+    flash(`Reset to saved ${ref.name}.`);
+  }
+
+  function selectPreset(p: Preset) {
+    sessionController.setPreset(p);
+  }
+
+  function flash(msg: string) {
+    savedMessage = msg;
+    setTimeout(() => (savedMessage = ''), 2500);
   }
 
   let preset = $derived($sessionState.preset);
   let visual = $derived(preset.visual);
   let audio = $derived(preset.audio);
+
+  let sessionMaxIndex = $derived.by(() => {
+    const v = preset.sessionMaxMinutes ?? null;
+    const idx = SESSION_LENGTH_CHOICES.findIndex((c) => c.value === v);
+    return idx === -1 ? 0 : idx;
+  });
+  let sessionMaxLabel = $derived(SESSION_LENGTH_CHOICES[sessionMaxIndex]?.label ?? '—');
+
+  function speedPct(hz: number): number {
+    const { speedHzMin: lo, speedHzMax: hi } = SESSION_LIMITS;
+    return ((hz - lo) / (hi - lo)) * 100;
+  }
+  function freqPct(hz: number): number {
+    const { frequencyHzMin: lo, frequencyHzMax: hi } = SESSION_LIMITS;
+    return ((hz - lo) / (hi - lo)) * 100;
+  }
+  function pct01(v: number): number {
+    return Math.max(0, Math.min(1, v)) * 100;
+  }
+  function timePct(idx: number): number {
+    return (idx / (SESSION_LENGTH_CHOICES.length - 1)) * 100;
+  }
 </script>
 
 <aside class="panel" class:open>
@@ -88,71 +164,92 @@
   {#if open}
     <div class="body">
       <div class="head">
-        <span class="section-label">Active</span>
-        <div class="active-name">
-          {preset.name}{#if !preset.builtin}<span class="star">★</span>{/if}
+        <div class="head-row">
+          <div class="active">
+            <span class="section-label">Active</span>
+            <span class="active-name">
+              {preset.name}{#if !preset.builtin}<span class="star">★</span>{/if}
+            </span>
+          </div>
+          <div class="head-actions">
+            <button class="primary sm" type="button" onclick={openSaveAsPrompt}>Save</button>
+            <button class="outline sm" type="button" onclick={resetToSaved}>Reset</button>
+          </div>
         </div>
-        {#if preset.description}
-          <p class="active-desc">{preset.description}</p>
+        {#if savedMessage}
+          <div class="ok">{savedMessage}</div>
         {/if}
       </div>
 
-      <div class="hairline"></div>
-
-      <fieldset>
-        <legend>Session</legend>
-
-        <div class="row stack">
-          <span class="lab">Auto-stop after</span>
-          <select
-            value={String(preset.sessionMaxMinutes ?? '')}
-            onchange={(e) => {
-              const v = (e.currentTarget as HTMLSelectElement).value;
-              updateSessionMax(v === '' ? null : Number(v));
-            }}
-          >
-            {#each SESSION_LENGTH_CHOICES as choice}
-              <option value={choice.value === null ? '' : String(choice.value)}>{choice.label}</option>
-            {/each}
-          </select>
+      <div class="section">
+        <div class="section-head">
+          <span class="lab">Saved settings</span>
         </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Visual</legend>
-
-        <div class="row toggle-row">
-          <span>Visual on</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              checked={visual.enabled}
-              onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
-            />
-          </label>
+        <div class="chip-strip" role="group" aria-label="Saved presets">
+          {#each $allPresets as p (p.id)}
+            <button
+              class="chip name-chip"
+              class:active={p.id === preset.id}
+              type="button"
+              onclick={() => selectPreset(p)}
+              title={p.description ?? p.name}
+            >
+              {p.name}{#if !p.builtin}<span class="chip-star" aria-hidden="true">★</span>{/if}
+            </button>
+          {/each}
         </div>
+      </div>
 
-        <div class="row stack">
-          <span class="lab">Path</span>
-          <select
-            value={visual.path}
-            onchange={(e) =>
-              updateVisual('path', (e.currentTarget as HTMLSelectElement).value as Preset['visual']['path'])}
-          >
-            <option value="horizontal">Horizontal —</option>
-            <option value="vertical">Vertical |</option>
-            <option value="diagonal">Diagonal ⟋</option>
-            <option value="circular">Circular ◯</option>
-            <option value="figure-eight">Figure-eight ∞</option>
-          </select>
-        </div>
-
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Speed</span>
-            <span class="readout-small numeric">{visual.speedHz.toFixed(2)} Hz</span>
-          </div>
+      <div class="section toggles">
+        <label class="big-toggle">
           <input
+            type="checkbox"
+            checked={visual.enabled}
+            onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
+          />
+          <span>Visual</span>
+        </label>
+        <label class="big-toggle">
+          <input
+            type="checkbox"
+            checked={audio.enabled}
+            onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
+          />
+          <span>Audio</span>
+        </label>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Time</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {timePct(sessionMaxIndex)}%">{sessionMaxLabel}</div>
+          <input
+            class="slider"
+            type="range"
+            min="0"
+            max={SESSION_LENGTH_CHOICES.length - 1}
+            step="1"
+            value={sessionMaxIndex}
+            oninput={(e) => {
+              const i = Number((e.currentTarget as HTMLInputElement).value);
+              updateSessionMax(SESSION_LENGTH_CHOICES[i].value);
+            }}
+            style="--fill: {timePct(sessionMaxIndex)}%"
+            aria-label="Auto-stop time"
+          />
+          <div class="rail-caps">
+            <span>{SESSION_LENGTH_CHOICES[0].label}</span>
+            <span>{SESSION_LENGTH_CHOICES[SESSION_LENGTH_CHOICES.length - 1].label}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Object speed</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {speedPct(visual.speedHz)}%">{visual.speedHz.toFixed(2)} Hz</div>
+          <input
+            class="slider"
             type="range"
             min={SESSION_LIMITS.speedHzMin}
             max={SESSION_LIMITS.speedHzMax}
@@ -160,128 +257,65 @@
             value={visual.speedHz}
             oninput={(e) =>
               updateVisual('speedHz', Number((e.currentTarget as HTMLInputElement).value))}
+            style="--fill: {speedPct(visual.speedHz)}%"
+            aria-label="Speed"
           />
-        </div>
-
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Set length</span>
-            <span class="readout-small numeric">{visual.setLength}</span>
+          <div class="rail-caps">
+            <span>{SESSION_LIMITS.speedHzMin.toFixed(1)}</span>
+            <span>{SESSION_LIMITS.speedHzMax.toFixed(1)}</span>
           </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Set length</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {(visual.setLength / 80) * 100}%">{visual.setLength}</div>
           <input
+            class="slider"
             type="range"
             min={SESSION_LIMITS.setLengthMin}
-            max={80}
+            max="80"
             step="1"
             value={visual.setLength}
             oninput={(e) =>
               updateVisual('setLength', Number((e.currentTarget as HTMLInputElement).value))}
+            style="--fill: {(visual.setLength / 80) * 100}%"
+            aria-label="Set length"
           />
+          <div class="rail-caps">
+            <span>1</span>
+            <span>80</span>
+          </div>
         </div>
+      </div>
 
-        <div class="row stack">
-          <span class="lab">Target</span>
-          <div class="row inline">
-            <select
-              value={visual.target.shape}
-              onchange={(e) =>
-                updateTarget(
-                  'shape',
-                  (e.currentTarget as HTMLSelectElement).value as Preset['visual']['target']['shape']
-                )}
+      <div class="hairline"></div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Audio tone</span></div>
+        <div class="chip-strip num-strip" role="group" aria-label="Audio voice">
+          {#each AUDIO_VOICES as v, i (v.value)}
+            <button
+              class="chip num-chip"
+              class:active={audio.voice === v.value}
+              type="button"
+              title={`${v.label} — ${v.description}`}
+              aria-label={v.label}
+              onclick={() => updateAudio('voice', v.value)}
             >
-              <option value="circle">Circle</option>
-              <option value="dot">Dot</option>
-              <option value="ring">Ring</option>
-            </select>
-            <input
-              type="color"
-              value={visual.target.color}
-              oninput={(e) => updateTarget('color', (e.currentTarget as HTMLInputElement).value)}
-              aria-label="Target color"
-            />
-          </div>
+              {i + 1}
+            </button>
+          {/each}
         </div>
+      </div>
 
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Target size</span>
-            <span class="readout-small numeric">{visual.target.sizePx}px</span>
-          </div>
+      <div class="section">
+        <div class="section-head"><span class="lab">Frequency</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {freqPct(audio.frequencyHz)}%">{audio.frequencyHz} Hz</div>
           <input
-            type="range"
-            min="8"
-            max="120"
-            step="1"
-            value={visual.target.sizePx}
-            oninput={(e) =>
-              updateTarget('sizePx', Number((e.currentTarget as HTMLInputElement).value))}
-          />
-        </div>
-
-        <div class="row stack">
-          <span class="lab">Background</span>
-          <div class="row inline">
-            <select
-              value={visual.background.contrast}
-              onchange={(e) =>
-                updateBackground(
-                  'contrast',
-                  (e.currentTarget as HTMLSelectElement)
-                    .value as Preset['visual']['background']['contrast']
-                )}
-            >
-              <option value="high">High</option>
-              <option value="standard">Standard</option>
-              <option value="reduced">Reduced</option>
-            </select>
-            <input
-              type="color"
-              value={visual.background.color}
-              oninput={(e) => updateBackground('color', (e.currentTarget as HTMLInputElement).value)}
-              aria-label="Background color"
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Audio</legend>
-
-        <div class="row toggle-row">
-          <span>Audio on</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              checked={audio.enabled}
-              onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
-            />
-          </label>
-        </div>
-
-        <div class="row stack">
-          <span class="lab">Voice</span>
-          <select
-            value={audio.voice}
-            onchange={(e) =>
-              updateAudio(
-                'voice',
-                (e.currentTarget as HTMLSelectElement).value as Preset['audio']['voice']
-              )}
-            title={AUDIO_VOICES.find((v) => v.value === audio.voice)?.description ?? ''}
-          >
-            {#each AUDIO_VOICES as v}
-              <option value={v.value} title={v.description}>{v.label}</option>
-            {/each}
-          </select>
-        </div>
-
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Frequency</span>
-            <span class="readout-small numeric">{audio.frequencyHz} Hz</span>
-          </div>
-          <input
+            class="slider"
             type="range"
             min={SESSION_LIMITS.frequencyHzMin}
             max={SESSION_LIMITS.frequencyHzMax}
@@ -289,15 +323,22 @@
             value={audio.frequencyHz}
             oninput={(e) =>
               updateAudio('frequencyHz', Number((e.currentTarget as HTMLInputElement).value))}
+            style="--fill: {freqPct(audio.frequencyHz)}%"
+            aria-label="Frequency"
           />
-        </div>
-
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Volume</span>
-            <span class="readout-small numeric">{Math.round(audio.volume * 100)}%</span>
+          <div class="rail-caps">
+            <span>{SESSION_LIMITS.frequencyHzMin}</span>
+            <span>{SESSION_LIMITS.frequencyHzMax}</span>
           </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Volume</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {pct01(audio.volume)}%">{Math.round(audio.volume * 100)}%</div>
           <input
+            class="slider"
             type="range"
             min="0"
             max="1"
@@ -305,15 +346,18 @@
             value={audio.volume}
             oninput={(e) =>
               updateAudio('volume', Number((e.currentTarget as HTMLInputElement).value))}
+            style="--fill: {pct01(audio.volume)}%"
+            aria-label="Volume"
           />
         </div>
+      </div>
 
-        <div class="row stack">
-          <div class="row label-row">
-            <span class="lab">Pan width</span>
-            <span class="readout-small numeric">{Math.round(audio.panWidth * 100)}%</span>
-          </div>
+      <div class="section">
+        <div class="section-head"><span class="lab">Pan width</span></div>
+        <div class="slider-wrap">
+          <div class="bubble" style="left: {pct01(audio.panWidth)}%">{Math.round(audio.panWidth * 100)}%</div>
           <input
+            class="slider"
             type="range"
             min="0"
             max="1"
@@ -321,21 +365,139 @@
             value={audio.panWidth}
             oninput={(e) =>
               updateAudio('panWidth', Number((e.currentTarget as HTMLInputElement).value))}
+            style="--fill: {pct01(audio.panWidth)}%"
+            aria-label="Pan width"
           />
         </div>
-      </fieldset>
-
-      <div class="footer">
-        <button class="primary" onclick={openSaveAsPrompt}>Save as preset</button>
-        <a href="/settings" class="link">Full settings →</a>
-        {#if savedMessage}
-          <div class="ok">{savedMessage}</div>
-        {/if}
       </div>
 
-      <p class="hint">
-        Live changes restart the audio engine briefly. Sweep counter resets on set-length change.
-      </p>
+      <div class="hairline"></div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Object size</span></div>
+        <div class="seg">
+          {#each SIZE_BUCKETS as b}
+            <button
+              class="chip seg-chip"
+              class:active={visual.target.sizePx === b.sizePx}
+              type="button"
+              onclick={() => updateTarget('sizePx', b.sizePx)}
+              aria-label={`Size ${b.label}`}
+            >
+              {b.label}
+            </button>
+          {/each}
+          {#if !SIZE_BUCKETS.some((b) => b.sizePx === visual.target.sizePx)}
+            <button class="chip seg-chip active" type="button" disabled>
+              {visual.target.sizePx}px
+            </button>
+          {/if}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Object shape</span></div>
+        <div class="seg">
+          {#each SHAPES as s}
+            <button
+              class="chip seg-chip glyph"
+              class:active={visual.target.shape === s}
+              type="button"
+              onclick={() => updateTarget('shape', s)}
+              aria-label={s}
+              title={s}
+            >
+              {SHAPE_GLYPHS[s]}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Background</span></div>
+        <div class="swatch-row">
+          {#each BG_SWATCHES as c}
+            <button
+              class="swatch sq"
+              class:active={visual.background.color.toLowerCase() === c.toLowerCase()}
+              type="button"
+              style="background: {c}"
+              onclick={() => updateBackground('color', c)}
+              aria-label={`Background ${c}`}
+            ></button>
+          {/each}
+          <label class="swatch sq custom" title="Custom background color">
+            <span aria-hidden="true">+</span>
+            <input
+              type="color"
+              value={visual.background.color}
+              oninput={(e) => updateBackground('color', (e.currentTarget as HTMLInputElement).value)}
+              aria-label="Custom background color"
+            />
+          </label>
+        </div>
+        <div class="seg seg-tight">
+          {#each CONTRAST_LEVELS as level}
+            <button
+              class="chip seg-chip"
+              class:active={visual.background.contrast === level}
+              type="button"
+              onclick={() => updateBackground('contrast', level)}
+            >
+              {level}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Object color</span></div>
+        <div class="swatch-row">
+          {#each TARGET_SWATCHES as c}
+            <button
+              class="swatch round"
+              class:active={visual.target.color.toLowerCase() === c.toLowerCase()}
+              type="button"
+              style="background: {c}"
+              onclick={() => updateTarget('color', c)}
+              aria-label={`Target ${c}`}
+            ></button>
+          {/each}
+          <label class="swatch round custom" title="Custom target color">
+            <span aria-hidden="true">+</span>
+            <input
+              type="color"
+              value={visual.target.color}
+              oninput={(e) => updateTarget('color', (e.currentTarget as HTMLInputElement).value)}
+              aria-label="Custom target color"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span class="lab">Object path</span></div>
+        <div class="seg">
+          {#each PATHS as p}
+            <button
+              class="chip seg-chip glyph"
+              class:active={visual.path === p}
+              type="button"
+              onclick={() => updateVisual('path', p)}
+              aria-label={p}
+              title={p}
+            >
+              {PATH_GLYPHS[p]}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div class="footer">
+        <a href="/settings" class="link">Full settings →</a>
+      </div>
+
+      <p class="hint">Live changes restart the audio engine briefly.</p>
     </div>
   {/if}
 </aside>
@@ -390,7 +552,6 @@
   }
   .toggle:hover {
     color: var(--accent);
-    border-color: var(--rule);
   }
   .toggle:focus-visible {
     outline: 1px solid var(--accent);
@@ -402,125 +563,384 @@
   }
 
   .body {
-    padding: 1rem 1.1rem 1.1rem 1.1rem;
+    padding: 0.9rem 1rem 1rem 1rem;
     max-height: calc(100vh - 9rem);
     overflow-y: auto;
     width: 360px;
   }
 
   .head {
-    margin-bottom: 0.85rem;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(12, 12, 13, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    margin: -0.9rem -1rem 0.6rem -1rem;
+    padding: 0.9rem 1rem 0.6rem 1rem;
+    border-bottom: 1px solid var(--rule);
   }
-  .head .section-label {
-    margin-bottom: 0.25rem;
-    display: block;
+  .head-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .active {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
   }
   .active-name {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 500;
     color: var(--fg);
     letter-spacing: -0.005em;
-    font-variation-settings: 'opsz' 18;
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .active-name .star {
     color: var(--accent);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
-  .active-desc {
-    font-size: 0.78rem;
+  .head-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  .section {
+    margin: 0.7rem 0;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.45rem;
+  }
+  .lab {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
     color: var(--fg-dim);
-    line-height: 1.45;
-    margin: 0.4rem 0 0 0;
   }
 
   .hairline {
     height: 1px;
     background: var(--rule);
-    margin: 0.85rem -1.1rem;
+    margin: 0.85rem -1rem;
   }
 
-  fieldset {
-    border: none;
-    padding: 0;
-    margin: 0 0 1rem 0;
-  }
-  legend {
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.7rem;
-    color: var(--accent);
-    padding: 0;
-    margin-bottom: 0.65rem;
-    width: 100%;
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 0.4rem;
-  }
-
-  .row {
+  /* chip strips (saved presets) */
+  .chip-strip {
     display: flex;
-    align-items: center;
-    margin: 0.5rem 0;
-  }
-  .row.stack {
-    flex-direction: column;
-    align-items: stretch;
     gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
   }
-  .row.label-row {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 0;
-  }
-  .row.inline {
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-  .row.inline > select {
-    flex: 1;
-  }
-
-  .toggle-row {
-    justify-content: space-between;
-  }
-  .toggle-row > span {
+  .chip {
+    background: transparent;
+    border: 1px solid var(--rule-strong);
     color: var(--fg-soft);
-  }
-
-  .lab {
+    border-radius: 4px;
+    padding: 0.4rem 0.65rem;
     font-family: var(--font-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--fg-dim);
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
+    white-space: nowrap;
   }
-  .readout-small {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
+  .chip:hover {
+    border-color: var(--accent-dim);
     color: var(--fg);
   }
+  .chip.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+  .chip:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .chip:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+  .name-chip {
+    flex-shrink: 0;
+  }
+  .chip-star {
+    color: inherit;
+    margin-left: 0.3rem;
+    opacity: 0.8;
+  }
 
-  .switch {
+  .num-strip {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    overflow: visible;
+  }
+  .num-chip {
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+  }
+
+  /* segmented + glyph chips */
+  .seg {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .seg-tight {
+    margin-top: 0.5rem;
+  }
+  .seg-chip {
+    flex: 1;
+    min-width: 2.4rem;
+    text-align: center;
+  }
+  .seg-chip.glyph {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 0;
+    padding: 0.35rem 0.4rem;
+    line-height: 1;
+  }
+
+  /* sliders */
+  .slider-wrap {
+    position: relative;
+    padding-top: 1.35rem;
+    padding-bottom: 0.15rem;
+  }
+  .bubble {
+    position: absolute;
+    top: 0;
+    transform: translate(-50%, 0);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--fg);
+    background: var(--bg-elev);
+    border: 1px solid var(--rule-strong);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    pointer-events: none;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    margin: 0;
+    height: 1.3rem;
     cursor: pointer;
+  }
+  .slider::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      var(--accent) 0%,
+      var(--accent) var(--fill, 0%),
+      var(--rule-strong) var(--fill, 0%),
+      var(--rule-strong) 100%
+    );
+    border-radius: 1px;
+  }
+  .slider::-moz-range-track {
+    height: 2px;
+    background: var(--rule-strong);
+    border-radius: 1px;
+  }
+  .slider::-moz-range-progress {
+    height: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-elev);
+    border: 2px solid var(--accent);
+    margin-top: -6px;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease);
+  }
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+  .slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-elev);
+    border: 2px solid var(--accent);
+    cursor: pointer;
+  }
+  .slider:focus-visible {
+    outline: none;
+  }
+  .slider:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(212, 160, 74, 0.3);
+  }
+  .rail-caps {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.15rem;
+  }
+
+  /* swatches */
+  .swatch-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--rule-strong);
+    cursor: pointer;
+    padding: 0;
+    background-clip: padding-box;
+    transition: box-shadow var(--dur-fast) var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+  .swatch.sq {
+    border-radius: 4px;
+  }
+  .swatch.round {
+    border-radius: 50%;
+  }
+  .swatch:hover {
+    box-shadow: 0 0 0 2px var(--rule-strong);
+  }
+  .swatch.active {
+    box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 4px var(--accent);
+  }
+  .swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 4px var(--accent);
+  }
+  .swatch.custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elev);
+    color: var(--fg-dim);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+  }
+  .swatch.custom input[type='color'] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+
+  /* big toggles */
+  .toggles {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .big-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--fg-soft);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease);
+  }
+  .big-toggle:hover {
+    border-color: var(--accent-dim);
+  }
+  .big-toggle input[type='checkbox'] {
+    accent-color: var(--accent);
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+  }
+
+  /* head buttons (override global sm) */
+  .head-actions .primary,
+  .head-actions .outline {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 0.4rem 0.7rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .head-actions .primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+  }
+  .head-actions .primary:hover {
+    background: var(--accent-bright);
+    border-color: var(--accent-bright);
+  }
+  .head-actions .outline {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--rule-strong);
+  }
+  .head-actions .outline:hover {
+    border-color: var(--accent);
+    color: var(--accent-bright);
   }
 
   .footer {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    flex-wrap: wrap;
+    justify-content: flex-end;
     margin-top: 0.5rem;
-    padding-top: 0.85rem;
+    padding-top: 0.75rem;
     border-top: 1px solid var(--rule);
-  }
-  .footer .primary {
-    flex: 1;
-    min-width: 0;
   }
   .link {
     font-family: var(--font-mono);
@@ -535,20 +955,27 @@
     color: var(--accent-bright);
   }
   .ok {
+    margin-top: 0.4rem;
     color: var(--ok);
-    font-size: 0.78rem;
-    width: 100%;
+    font-size: 0.7rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
   }
   .hint {
     font-family: var(--font-mono);
-    font-size: 0.66rem;
+    font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--fg-faint);
-    line-height: 1.55;
-    margin: 0.85rem 0 0 0;
+    line-height: 1.5;
+    margin: 0.7rem 0 0 0;
+  }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--fg-dim);
   }
 </style>
