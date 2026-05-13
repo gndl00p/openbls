@@ -7,10 +7,10 @@
 export const ACKNOWLEDGMENT_VERSION = 1;
 
 export const SAFETY_COPY = {
-  appTagline: 'Open-source bilateral-stimulation tool for licensed clinicians.',
+  appTagline: 'Free, open-source bilateral stimulation for licensed clinicians.',
 
   disclaimerHeadline:
-    'OpenBLS is a tool, not therapy. It does not diagnose, treat, cure, or prevent any condition. It is not a substitute for evaluation or care from a licensed mental-health professional.',
+    'OpenBLS is a tool, not therapy. It does not diagnose, treat, cure, or prevent any condition, and it is not a substitute for care from a licensed mental-health professional.',
 
   contraindications: [
     'Active psychosis or recent psychotic episode',
@@ -25,16 +25,16 @@ export const SAFETY_COPY = {
   ],
 
   visualModeCaution:
-    'Some people experience seizures triggered by flashing or moving visual patterns. If you have ever had such a seizure, do not use the visual mode. If during use you experience nausea, dizziness, disorientation, headache, or any unusual sensation, stop immediately.',
+    'Some people have seizures triggered by flashing or moving visual patterns. If that has ever happened to you, do not use the visual mode. If you feel nausea, dizziness, disorientation, headache, or anything unusual during use, stop immediately.',
 
   audioModeCaution:
-    'If you have severe hyperacusis, misophonia, recent acoustic trauma, or tinnitus that is meaningfully exacerbated by intermittent tones, the audio mode may not be appropriate. Start at a low volume.',
+    'If you have hyperacusis, misophonia, recent acoustic trauma, or tinnitus that gets worse with intermittent tones, the audio mode may not be a fit. Start at a low volume.',
 
   acknowledgmentAffirmation:
-    'I have read and understood the items above and I am clearing this tool for use within my clinical judgment.',
+    'I have read and understood the items above. I am clearing this tool for use within my clinical judgment.',
 
   nonClinicianRouting:
-    'OpenBLS is built for use by licensed clinicians inside their practices. If you are not working with a clinician, this tool is not the right starting point — bilateral stimulation outside a structured clinical relationship can surface intense emotional content without containment. The EMDRIA directory at emdria.org lists trained clinicians in the US; EMDR Europe and other regional associations cover the rest of the world.',
+    'OpenBLS is built for licensed clinicians using it in their practice. If you are not working with a clinician, this is not the right starting point. Bilateral stimulation outside a structured clinical relationship can surface intense emotional content without containment. The EMDRIA directory at emdria.org lists trained clinicians in the US. EMDR Europe and other regional associations cover the rest of the world.',
 
   crisis: {
     headline: 'If you are in crisis or thinking about harming yourself, please get help now:',
@@ -48,5 +48,12 @@ export const SAFETY_COPY = {
   },
 
   emdriaDirectoryUrl: 'https://www.emdria.org/find-an-emdr-therapist/',
-  emdrEuropeUrl: 'https://emdr-europe.org/'
+  emdrEuropeUrl: 'https://emdr-europe.org/',
+
+  dedication: {
+    headline: 'For veterans and the clinicians who serve them.',
+    body:
+      "We're losing veterans to suicide. The clinicians who can help shouldn't have to pay subscription fees for the basic tools of their craft. OpenBLS is free, and will stay free. To clinicians using this with veterans: thank you. To veterans reading this: trained clinicians exist in every region. Find one.",
+    veteransCrisisLine: 'Veterans Crisis Line. Dial 988 then press 1, or text 838255. Confidential, free, 24/7.'
+  }
 } as const;

@@ -105,8 +105,8 @@ export const BUILT_IN_PRESETS: Preset[] = [
   },
   {
     schemaVersion: PresetSchemaVersion,
-    id: 'art-40-sweep',
-    name: 'ART 40-Sweep',
+    id: 'fixed-40-sweep',
+    name: '40-Sweep Fixed Set',
     builtin: true,
     description: 'Horizontal sweep at 1.0 Hz, fixed 40 sweeps per set, single set with auto-stop.',
     visual: {

@@ -91,6 +91,13 @@
         {busy ? 'Continuing…' : 'Continue →'}
       </button>
     </footer>
+
+    <aside class="dedication">
+      <span class="section-label">Dedication</span>
+      <p class="ded-headline">{SAFETY_COPY.dedication.headline}</p>
+      <p class="ded-body">{SAFETY_COPY.dedication.body}</p>
+      <p class="ded-vcl">{SAFETY_COPY.dedication.veteransCrisisLine}</p>
+    </aside>
   </article>
 </div>
 
@@ -344,5 +351,39 @@
     color: rgba(26, 24, 20, 0.4);
     border-color: rgba(26, 24, 20, 0.18);
     cursor: not-allowed;
+  }
+
+  .dedication {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(26, 24, 20, 0.18);
+  }
+  .dedication .section-label {
+    color: rgba(26, 24, 20, 0.55);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .ded-headline {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    margin: 0 0 0.6rem 0;
+    color: rgba(26, 24, 20, 0.95);
+    font-variation-settings: 'opsz' 14, 'SOFT' 30;
+  }
+  .ded-body {
+    font-size: 0.92rem;
+    color: rgba(26, 24, 20, 0.78);
+    line-height: 1.6;
+    margin: 0 0 0.75rem 0;
+  }
+  .ded-vcl {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: rgba(26, 24, 20, 0.75);
+    background: rgba(26, 24, 20, 0.06);
+    padding: 0.55rem 0.75rem;
+    border-left: 2px solid rgba(184, 95, 66, 0.7);
+    margin: 0;
   }
 </style>

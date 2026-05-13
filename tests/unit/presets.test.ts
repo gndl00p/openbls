@@ -34,7 +34,7 @@ describe('Built-in presets', () => {
       'faster-processing',
       'slow-resourcing',
       'audio-only-eyes-closed',
-      'art-40-sweep',
+      'fixed-40-sweep',
       'butterfly-hug-guide'
     ];
     for (const id of required) {

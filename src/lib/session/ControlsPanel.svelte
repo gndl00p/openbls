@@ -2,12 +2,7 @@
   import { sessionController } from '$lib/stores/session.js';
   import { presetsStore } from '$lib/stores/presets.js';
   import { BUILT_IN_PRESETS } from '$lib/presets/builtin.js';
-  import {
-    SESSION_LIMITS,
-    AUDIO_VOICES,
-    SESSION_LENGTH_CHOICES,
-    type VisualPath
-  } from '$lib/session/types.js';
+  import { SESSION_LIMITS, AUDIO_VOICES, type VisualPath } from '$lib/session/types.js';
   import type { Preset } from '$lib/presets/schema.js';
   import PromptModal from '$lib/ui/PromptModal.svelte';
 
@@ -18,6 +13,11 @@
   let savedMessage = $state('');
   let promptOpen = $state(false);
   let promptDefault = $state('');
+  import { GUIDE_BY_KEY } from '$lib/guide/content.js';
+  let helpOpen = $state<string | null>(null);
+  function toggleHelp(key: string) {
+    helpOpen = helpOpen === key ? null : key;
+  }
 
   const SIZE_BUCKETS = [
     { label: 'S', sizePx: 24 },
@@ -132,12 +132,13 @@
   let visual = $derived(preset.visual);
   let audio = $derived(preset.audio);
 
-  let sessionMaxIndex = $derived.by(() => {
-    const v = preset.sessionMaxMinutes ?? null;
-    const idx = SESSION_LENGTH_CHOICES.findIndex((c) => c.value === v);
-    return idx === -1 ? 0 : idx;
-  });
-  let sessionMaxLabel = $derived(SESSION_LENGTH_CHOICES[sessionMaxIndex]?.label ?? '—');
+  const TIME_MIN = 1;
+  const TIME_MAX = 60;
+  let timeSliderValue = $derived(preset.sessionMaxMinutes ?? 10);
+  let timeOff = $derived(preset.sessionMaxMinutes == null);
+  function timePctMin(min: number): number {
+    return ((min - TIME_MIN) / (TIME_MAX - TIME_MIN)) * 100;
+  }
 
   function speedPct(hz: number): number {
     const { speedHzMin: lo, speedHzMax: hi } = SESSION_LIMITS;
@@ -150,10 +151,31 @@
   function pct01(v: number): number {
     return Math.max(0, Math.min(1, v)) * 100;
   }
-  function timePct(idx: number): number {
-    return (idx / (SESSION_LENGTH_CHOICES.length - 1)) * 100;
-  }
 </script>
+
+{#snippet helpBtn(key: string)}
+  <button
+    type="button"
+    class="help-btn"
+    class:on={helpOpen === key}
+    onclick={() => toggleHelp(key)}
+    aria-label="What is this?"
+    aria-expanded={helpOpen === key}
+  >?</button>
+{/snippet}
+
+{#snippet helpBox(key: string)}
+  {#if helpOpen === key && GUIDE_BY_KEY[key]}
+    <div class="help-box" role="note">
+      <p class="help-what">{GUIDE_BY_KEY[key].short.what}</p>
+      <p class="help-why"><span class="help-label">Why:</span> {GUIDE_BY_KEY[key].short.why}</p>
+      {#if GUIDE_BY_KEY[key].short.cite}
+        <p class="help-cite">{GUIDE_BY_KEY[key].short.cite}</p>
+      {/if}
+      <a class="help-more" href={`/guide#${key}`}>Read more in the clinicians' guide →</a>
+    </div>
+  {/if}
+{/snippet}
 
 <aside class="panel" class:open>
   <button class="toggle" type="button" onclick={() => (open = !open)} aria-expanded={open}>
@@ -184,7 +206,9 @@
       <div class="section">
         <div class="section-head">
           <span class="lab">Saved settings</span>
+          {@render helpBtn('saved')}
         </div>
+        {@render helpBox('saved')}
         <div class="chip-strip" role="group" aria-label="Saved presets">
           {#each $allPresets as p (p.id)}
             <button
@@ -200,52 +224,74 @@
         </div>
       </div>
 
-      <div class="section toggles">
-        <label class="big-toggle">
-          <input
-            type="checkbox"
-            checked={visual.enabled}
-            onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
-          />
-          <span>Visual</span>
-        </label>
-        <label class="big-toggle">
-          <input
-            type="checkbox"
-            checked={audio.enabled}
-            onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
-          />
-          <span>Audio</span>
-        </label>
+      <div class="section">
+        <div class="toggles">
+          <label class="big-toggle">
+            <input
+              type="checkbox"
+              checked={visual.enabled}
+              onchange={(e) => updateVisual('enabled', (e.currentTarget as HTMLInputElement).checked)}
+            />
+            <span>Visual</span>
+            {@render helpBtn('visual')}
+          </label>
+          <label class="big-toggle">
+            <input
+              type="checkbox"
+              checked={audio.enabled}
+              onchange={(e) => updateAudio('enabled', (e.currentTarget as HTMLInputElement).checked)}
+            />
+            <span>Audio</span>
+            {@render helpBtn('audio')}
+          </label>
+        </div>
+        {@render helpBox('visual')}
+        {@render helpBox('audio')}
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Time</span></div>
-        <div class="slider-wrap">
-          <div class="bubble" style="left: {timePct(sessionMaxIndex)}%">{sessionMaxLabel}</div>
-          <input
-            class="slider"
-            type="range"
-            min="0"
-            max={SESSION_LENGTH_CHOICES.length - 1}
-            step="1"
-            value={sessionMaxIndex}
-            oninput={(e) => {
-              const i = Number((e.currentTarget as HTMLInputElement).value);
-              updateSessionMax(SESSION_LENGTH_CHOICES[i].value);
-            }}
-            style="--fill: {timePct(sessionMaxIndex)}%"
-            aria-label="Auto-stop time"
-          />
-          <div class="rail-caps">
-            <span>{SESSION_LENGTH_CHOICES[0].label}</span>
-            <span>{SESSION_LENGTH_CHOICES[SESSION_LENGTH_CHOICES.length - 1].label}</span>
+        <div class="section-head">
+          <span class="lab">Time</span>
+          {@render helpBtn('time')}
+        </div>
+        {@render helpBox('time')}
+        <div class="time-row">
+          <button
+            class="chip"
+            class:active={timeOff}
+            type="button"
+            onclick={() => updateSessionMax(timeOff ? 10 : null)}
+            aria-pressed={timeOff}
+          >
+            Off
+          </button>
+          <div class="slider-wrap time-slider" class:disabled={timeOff}>
+            <div class="bubble" style="left: {timePctMin(timeSliderValue)}%">
+              {timeOff ? '∞' : `${timeSliderValue} min`}
+            </div>
+            <input
+              class="slider tick-5"
+              type="range"
+              min={TIME_MIN}
+              max={TIME_MAX}
+              step="1"
+              value={timeSliderValue}
+              disabled={timeOff}
+              oninput={(e) => updateSessionMax(Number((e.currentTarget as HTMLInputElement).value))}
+              style="--fill: {timePctMin(timeSliderValue)}%"
+              aria-label="Auto-stop time"
+            />
+            <div class="rail-caps">
+              <span>{TIME_MIN}m</span>
+              <span>{TIME_MAX}m</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Object speed</span></div>
+        <div class="section-head"><span class="lab">Object speed</span>{@render helpBtn('speed')}</div>
+        {@render helpBox('speed')}
         <div class="slider-wrap">
           <div class="bubble" style="left: {speedPct(visual.speedHz)}%">{visual.speedHz.toFixed(2)} Hz</div>
           <input
@@ -268,7 +314,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Set length</span></div>
+        <div class="section-head"><span class="lab">Set length</span>{@render helpBtn('setLength')}</div>
+        {@render helpBox('setLength')}
         <div class="slider-wrap">
           <div class="bubble" style="left: {(visual.setLength / 80) * 100}%">{visual.setLength}</div>
           <input
@@ -293,14 +340,15 @@
       <div class="hairline"></div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Audio tone</span></div>
+        <div class="section-head"><span class="lab">Audio tone</span>{@render helpBtn('tone')}</div>
+        {@render helpBox('tone')}
         <div class="chip-strip num-strip" role="group" aria-label="Audio voice">
           {#each AUDIO_VOICES as v, i (v.value)}
             <button
               class="chip num-chip"
               class:active={audio.voice === v.value}
               type="button"
-              title={`${v.label} — ${v.description}`}
+              title={`${v.label}. ${v.description}`}
               aria-label={v.label}
               onclick={() => updateAudio('voice', v.value)}
             >
@@ -311,7 +359,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Frequency</span></div>
+        <div class="section-head"><span class="lab">Frequency</span>{@render helpBtn('frequency')}</div>
+        {@render helpBox('frequency')}
         <div class="slider-wrap">
           <div class="bubble" style="left: {freqPct(audio.frequencyHz)}%">{audio.frequencyHz} Hz</div>
           <input
@@ -334,7 +383,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Volume</span></div>
+        <div class="section-head"><span class="lab">Volume</span>{@render helpBtn('volume')}</div>
+        {@render helpBox('volume')}
         <div class="slider-wrap">
           <div class="bubble" style="left: {pct01(audio.volume)}%">{Math.round(audio.volume * 100)}%</div>
           <input
@@ -353,7 +403,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Pan width</span></div>
+        <div class="section-head"><span class="lab">Pan width</span>{@render helpBtn('panWidth')}</div>
+        {@render helpBox('panWidth')}
         <div class="slider-wrap">
           <div class="bubble" style="left: {pct01(audio.panWidth)}%">{Math.round(audio.panWidth * 100)}%</div>
           <input
@@ -374,7 +425,8 @@
       <div class="hairline"></div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Object size</span></div>
+        <div class="section-head"><span class="lab">Object size</span>{@render helpBtn('size')}</div>
+        {@render helpBox('size')}
         <div class="seg">
           {#each SIZE_BUCKETS as b}
             <button
@@ -396,7 +448,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Object shape</span></div>
+        <div class="section-head"><span class="lab">Object shape</span>{@render helpBtn('shape')}</div>
+        {@render helpBox('shape')}
         <div class="seg">
           {#each SHAPES as s}
             <button
@@ -414,7 +467,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Background</span></div>
+        <div class="section-head"><span class="lab">Background</span>{@render helpBtn('background')}</div>
+        {@render helpBox('background')}
         <div class="swatch-row">
           {#each BG_SWATCHES as c}
             <button
@@ -436,6 +490,11 @@
             />
           </label>
         </div>
+        <div class="contrast-sub">
+          <span class="lab sub">Contrast</span>
+          {@render helpBtn('contrast')}
+        </div>
+        {@render helpBox('contrast')}
         <div class="seg seg-tight">
           {#each CONTRAST_LEVELS as level}
             <button
@@ -451,7 +510,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Object color</span></div>
+        <div class="section-head"><span class="lab">Object color</span>{@render helpBtn('targetColor')}</div>
+        {@render helpBox('targetColor')}
         <div class="swatch-row">
           {#each TARGET_SWATCHES as c}
             <button
@@ -476,7 +536,8 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="lab">Object path</span></div>
+        <div class="section-head"><span class="lab">Object path</span>{@render helpBtn('path')}</div>
+        {@render helpBox('path')}
         <div class="seg">
           {#each PATHS as p}
             <button
@@ -497,7 +558,7 @@
         <a href="/settings" class="link">Full settings →</a>
       </div>
 
-      <p class="hint">Live changes restart the audio engine briefly.</p>
+      <p class="hint">Changes apply live. The audio briefly restarts when you edit.</p>
     </div>
   {/if}
 </aside>
@@ -517,6 +578,9 @@
     position: absolute;
     top: 1rem;
     right: 0;
+    bottom: 1rem;
+    display: flex;
+    flex-direction: column;
     background: linear-gradient(to bottom, rgba(19, 18, 20, 0.96), rgba(12, 12, 13, 0.96));
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -527,6 +591,9 @@
     z-index: 10;
     max-width: min(360px, 92vw);
     box-shadow: -10px 0 30px -6px rgba(0, 0, 0, 0.5);
+  }
+  .panel:not(.open) {
+    bottom: auto;
   }
 
   .toggle {
@@ -564,8 +631,10 @@
 
   .body {
     padding: 0.9rem 1rem 1rem 1rem;
-    max-height: calc(100vh - 9rem);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     width: 360px;
   }
 
@@ -643,9 +712,8 @@
   .chip-strip {
     display: flex;
     gap: 0.35rem;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-    scrollbar-width: thin;
+    flex-wrap: wrap;
+    padding-bottom: 0.15rem;
   }
   .chip {
     background: transparent;
@@ -977,5 +1045,134 @@
     text-transform: uppercase;
     letter-spacing: 0.16em;
     color: var(--fg-dim);
+  }
+
+  /* help button + popover */
+  .help-btn {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    border: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--fg-dim);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.4rem;
+    transition: all var(--dur-fast) var(--ease);
+    flex-shrink: 0;
+  }
+  .help-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  .help-btn.on {
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .help-box {
+    margin: 0 0 0.5rem 0;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--rule-strong);
+    background: var(--bg-dim);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: 0.74rem;
+    color: var(--fg-soft);
+    line-height: 1.45;
+  }
+  .help-what {
+    margin: 0;
+    color: var(--fg);
+  }
+  .help-why {
+    margin: 0.3rem 0 0 0;
+  }
+  .help-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--fg-dim);
+    margin-right: 0.25rem;
+  }
+  .help-cite {
+    margin: 0.35rem 0 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .help-more {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .help-more:hover {
+    color: var(--accent-bright);
+  }
+
+  /* time row: Off chip + slider */
+  .time-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+  .time-row > .chip {
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .time-slider {
+    flex: 1;
+  }
+  .time-slider.disabled {
+    opacity: 0.45;
+  }
+  .time-slider .bubble {
+    color: var(--fg);
+  }
+  /* 5-minute tick marks: ticks at every 5 across 1-60 range */
+  .slider.tick-5 {
+    background-image: repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc((100% / 11.8) - 1px),
+      var(--rule-strong) calc((100% / 11.8) - 1px),
+      var(--rule-strong) calc(100% / 11.8)
+    );
+    background-repeat: no-repeat;
+    background-position: 0 calc(50% + 4px);
+    background-size: 100% 4px;
+  }
+
+  /* contrast sub-row inside background section */
+  .contrast-sub {
+    display: flex;
+    align-items: center;
+    margin-top: 0.6rem;
+    margin-bottom: 0.35rem;
+  }
+  .lab.sub {
+    font-size: 0.62rem;
+    color: var(--fg-faint);
+  }
+
+  .big-toggle .help-btn {
+    margin-left: auto;
   }
 </style>

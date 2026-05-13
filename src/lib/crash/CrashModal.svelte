@@ -49,8 +49,7 @@
     </div>
 
     <p class="hint">
-      Please review the report above before filing — we do not collect telemetry, so we only see
-      what you choose to paste.
+      Read the report before filing. We do not collect telemetry. We only see what you paste in.
     </p>
   </article>
 </div>

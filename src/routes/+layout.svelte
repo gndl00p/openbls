@@ -33,6 +33,7 @@
     { href: '/', label: 'Session' },
     { href: '/presets', label: 'Presets' },
     { href: '/settings', label: 'Settings' },
+    { href: '/guide', label: 'Guide' },
     { href: '/about', label: 'About' }
   ];
 </script>
@@ -86,7 +87,8 @@
 
 <style>
   .app {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -176,9 +178,11 @@
 
   .content {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     position: relative;
+    overflow-y: auto;
   }
 
   .loading {

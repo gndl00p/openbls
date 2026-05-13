@@ -12,10 +12,10 @@
   <article class="block">
     <span class="section-label">§ 1 &nbsp; What this is</span>
     <p>
-      OpenBLS is a free, open-source desktop and web tool that delivers configurable visual and
-      audio bilateral-stimulation patterns for use by licensed clinicians inside their practices.
-      Intentionally narrow in scope: it produces stimulation patterns. No therapy-content layer,
-      no guided protocol, no client-data tracking.
+      OpenBLS is a free, open-source desktop and web tool that delivers visual and audio
+      bilateral-stimulation patterns for licensed clinicians to use in their practice. The
+      scope is deliberately narrow. It produces the stimulation. It does not deliver therapy
+      content, walk through a protocol, or track anything about your client.
     </p>
   </article>
 
@@ -41,14 +41,14 @@
   <article class="block">
     <span class="section-label">§ 4 &nbsp; Privacy</span>
     <p>
-      No accounts, no cloud, no telemetry, no outbound network requests at runtime. Settings and
-      custom presets persist to your local device only. The crash handler shows reports locally and
-      lets you decide whether to file them on GitHub. Nothing is sent automatically.
+      No accounts. No cloud. No telemetry. No network calls at runtime. Settings and custom
+      presets live on this device. The crash handler shows reports locally and lets you decide
+      whether to send one in on GitHub. Nothing is sent automatically.
     </p>
   </article>
 
   <article class="block">
-    <span class="section-label">§ 5 &nbsp; License & contribution</span>
+    <span class="section-label">§ 5 &nbsp; License and contribution</span>
     <p>
       Apache-2.0. Source and contribution guide at
       <a href="https://github.com/gndl00p/openbls" target="_blank" rel="noopener noreferrer"
@@ -60,9 +60,16 @@
   <article class="block">
     <span class="section-label">§ 6 &nbsp; Trademark</span>
     <p>
-      OpenBLS is unaffiliated with the EMDR Institute, EMDRIA, EMDR Europe, or any other trademark
-      holder. <em>BLS</em> stands for bilateral stimulation, a generic term.
+      OpenBLS is not affiliated with the EMDR Institute, EMDRIA, EMDR Europe, or any other
+      trademark holder. BLS stands for bilateral stimulation, which is a generic term.
     </p>
+  </article>
+
+  <article class="block dedication">
+    <span class="section-label">Dedication</span>
+    <p class="ded-headline">{SAFETY_COPY.dedication.headline}</p>
+    <p class="ded-body">{SAFETY_COPY.dedication.body}</p>
+    <p class="ded-vcl">{SAFETY_COPY.dedication.veteransCrisisLine}</p>
   </article>
 </section>
 
@@ -121,9 +128,34 @@
     color: var(--rule-strong);
     margin: 0 0.4rem;
   }
-  em {
+
+  .dedication .section-label {
+    color: var(--accent);
+  }
+  .ded-headline {
     font-family: var(--font-display);
     font-style: italic;
-    font-variation-settings: 'opsz' 14;
+    font-size: 1.4rem;
+    color: var(--fg);
+    margin: 0.5rem 0 0.8rem 0;
+    font-variation-settings: 'opsz' 18, 'SOFT' 30;
+    max-width: 36ch;
+  }
+  .ded-body {
+    color: var(--fg-soft);
+    font-size: 1rem;
+    line-height: 1.65;
+    max-width: 60ch;
+    margin: 0 0 1rem 0;
+  }
+  .ded-vcl {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--fg);
+    background: var(--bg-elev);
+    padding: 0.6rem 0.8rem;
+    border-left: 2px solid var(--danger);
+    margin: 0;
+    max-width: 60ch;
   }
 </style>

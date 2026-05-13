@@ -22,6 +22,7 @@
 
   function start() {
     sessionController.start();
+    panelOpen = false;
   }
   function pause() {
     if ($sessionState.status === 'running') sessionController.pause();
@@ -229,10 +230,12 @@
 <style>
   .surface {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background: var(--bg);
     position: relative;
+    overflow: hidden;
   }
   .surface.fullscreen {
     background: #000;
@@ -243,7 +246,7 @@
 
   .canvas-area {
     flex: 1;
-    min-height: 360px;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
