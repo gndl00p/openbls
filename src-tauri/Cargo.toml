@@ -1,6 +1,6 @@
 [package]
 name = "openbls"
-version = "0.1.0"
+version = "1.0.0"
 description = "Open-source bilateral-stimulation tool for licensed clinicians"
 authors = ["OpenBLS contributors"]
 edition = "2021"
