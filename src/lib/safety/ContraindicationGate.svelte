@@ -31,6 +31,7 @@
       <h1 id="gate-title">
         Before<br />you continue.
       </h1>
+      <p class="audience-gate">{SAFETY_COPY.audienceGate}</p>
       <p class="lede">{SAFETY_COPY.disclaimerHeadline}</p>
     </header>
 
@@ -164,6 +165,18 @@
     font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 1;
     color: var(--paper-ink);
     margin-bottom: 1.25rem;
+  }
+  .audience-gate {
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    font-weight: 500;
+    line-height: 1.55;
+    color: var(--paper-ink);
+    background: rgba(184, 95, 66, 0.12);
+    border-left: 3px solid rgba(184, 95, 66, 0.85);
+    padding: 0.85rem 1rem;
+    margin: 0 0 1.25rem 0;
+    max-width: 60ch;
   }
   .lede {
     font-family: var(--font-display);

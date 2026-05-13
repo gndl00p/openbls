@@ -9,6 +9,9 @@ export const ACKNOWLEDGMENT_VERSION = 1;
 export const SAFETY_COPY = {
   appTagline: 'Free, open-source bilateral stimulation for licensed clinicians.',
 
+  audienceGate:
+    'OpenBLS is for licensed mental-health clinicians and qualified research personnel only. It is not for self-administered or consumer use. If you are not a clinician or researcher, please close this tool and find a trained provider.',
+
   disclaimerHeadline:
     'OpenBLS is a tool, not therapy. It does not diagnose, treat, cure, or prevent any condition, and it is not a substitute for care from a licensed mental-health professional.',
 
@@ -31,7 +34,7 @@ export const SAFETY_COPY = {
     'If you have hyperacusis, misophonia, recent acoustic trauma, or tinnitus that gets worse with intermittent tones, the audio mode may not be a fit. Start at a low volume.',
 
   acknowledgmentAffirmation:
-    'I have read and understood the items above. I am clearing this tool for use within my clinical judgment.',
+    'I am a licensed mental-health clinician or qualified research personnel. I have read and understood the items above and am clearing this tool for use within my professional judgment.',
 
   nonClinicianRouting:
     'OpenBLS is built for licensed clinicians using it in their practice. If you are not working with a clinician, this is not the right starting point. Bilateral stimulation outside a structured clinical relationship can surface intense emotional content without containment. The EMDRIA directory at emdria.org lists trained clinicians in the US. EMDR Europe and other regional associations cover the rest of the world.',
