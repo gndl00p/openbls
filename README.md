@@ -10,6 +10,10 @@ in EMDR-style protocols.
 Apache-2.0 licensed. Local-only. Zero telemetry. Zero accounts. Zero outbound
 network requests at runtime.
 
+**Try it in your browser:** [gndl00p.github.io/openbls](https://gndl00p.github.io/openbls/)
+— evaluation surface only. For clinical use, install the desktop build from
+[Releases](https://github.com/gndl00p/openbls/releases).
+
 ---
 
 ## Built for clinicians
