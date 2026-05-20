@@ -64,10 +64,10 @@ sources) and is treated as authoritative for the first-launch gate.
 > If you are in crisis or thinking about harming yourself, please get
 > help now:
 >
-> - United States — call or text 988 (Suicide and Crisis Lifeline).
-> - United Kingdom & Ireland — call Samaritans on 116 123.
-> - European Union — call 112.
-> - Other countries — see findahelpline.com.
+> - United States. Call or text 988 (Suicide and Crisis Lifeline).
+> - United Kingdom & Ireland. Call Samaritans on 116 123.
+> - European Union. Call 112.
+> - Other countries. See findahelpline.com.
 
 ### Acknowledgment-gate affirmation
 
@@ -80,7 +80,7 @@ Shown in docs and on the About page when a non-clinician self-identifies.
 
 > OpenBLS is built for use by licensed clinicians inside their practices.
 > If you are not working with a clinician, this tool is not the right
-> starting point — bilateral stimulation outside a structured clinical
+> starting point. Bilateral stimulation outside a structured clinical
 > relationship can surface intense emotional content without containment.
 > The EMDRIA directory at emdria.org lists trained clinicians in the US;
 > EMDR Europe and other regional associations cover the rest of the world.

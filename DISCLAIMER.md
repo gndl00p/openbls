@@ -8,7 +8,7 @@ or care from a licensed mental-health professional.
 OpenBLS is built for use by licensed clinicians inside their practices,
 including in EMDR-style protocols. It is not designed for self-administered
 trauma processing. If you are not working with a clinician, the tool is not
-the right starting point — please see [How to find a clinician](#how-to-find-a-clinician)
+the right starting point. Please see [How to find a clinician](#how-to-find-a-clinician)
 below.
 
 ## Do not use OpenBLS if any of the following apply, unless a clinician has cleared you
@@ -41,10 +41,10 @@ the audio mode may not be appropriate. Start at a low volume.
 
 If you are in crisis or thinking about harming yourself, please get help now:
 
-- **United States** — call or text **988** (Suicide and Crisis Lifeline).
-- **United Kingdom & Ireland** — call **Samaritans** on **116 123**.
-- **European Union** — call **112**.
-- **Other countries** — see [findahelpline.com](https://findahelpline.com).
+- **United States.** Call or text **988** (Suicide and Crisis Lifeline).
+- **United Kingdom & Ireland.** Call **Samaritans** on **116 123**.
+- **European Union.** Call **112**.
+- **Other countries.** See [findahelpline.com](https://findahelpline.com).
 
 ## If you are working with a clinician
 

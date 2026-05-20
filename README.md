@@ -10,8 +10,8 @@ in EMDR-style protocols.
 Apache-2.0 licensed. Local-only. Zero telemetry. Zero accounts. Zero outbound
 network requests at runtime.
 
-**Try it in your browser:** [gndl00p.github.io/openbls](https://gndl00p.github.io/openbls/)
-— evaluation surface only. For clinical use, install the desktop build from
+**Try it in your browser:** [gndl00p.github.io/openbls](https://gndl00p.github.io/openbls/).
+Evaluation surface only. For clinical use, install the desktop build from
 [Releases](https://github.com/gndl00p/openbls/releases).
 
 ---
@@ -22,7 +22,7 @@ OpenBLS is positioned as a professional tool, not a consumer self-help
 application. It does not diagnose, treat, cure, or prevent any condition,
 and it makes no therapeutic claims.
 
-If you are a licensed clinician — welcome. The tool is yours to configure
+If you are a licensed clinician, welcome. The tool is yours to configure
 and use as you see fit.
 
 If you are **not** a clinician and you are looking for help with trauma,
@@ -71,23 +71,21 @@ OpenBLS does **not** include:
   WebRTC peer-to-peer.
 - SUDS or target-memory tracking. Planned for v1.y, local-only.
 - Telemetry, analytics, accounts, cloud sync, automatic crash reporting.
-  These are out of scope **permanently** — the tool will never ship them.
+  These are out of scope permanently. The tool will never ship them.
 - App-store distribution. The app is distributed as a static web build
   and as desktop installers from this repo's GitHub Releases page only.
 
 ## Installing
 
-> **Note.** v1 is in active development. Builds and a hosted web demo will be
-> linked here once v1.0.0 is tagged.
-
 Three ways to use OpenBLS:
 
-1. **Web app** — open the hosted build at the URL listed in the next
-   release. Installs as a PWA on most platforms.
-2. **Desktop installer** — download the appropriate file from the latest
+1. **Web app.** Open the hosted build at
+   [gndl00p.github.io/openbls](https://gndl00p.github.io/openbls/).
+   Installs as a PWA on most platforms.
+2. **Desktop installer.** Download the appropriate file from the latest
    [Releases](https://github.com/gndl00p/openbls/releases) page:
    `.deb` / `.AppImage` (Linux), `.dmg` (macOS), `.msi` (Windows).
-3. **Self-host** — clone this repo and follow [Building from source](#building-from-source).
+3. **Self-host.** Clone this repo and follow [Building from source](#building-from-source).
 
 ## Building from source
 
@@ -124,9 +122,9 @@ PRs welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening one. In
 short:
 
 - Telemetry, analytics, accounts, sign-in, automatic crash reporting, cloud
-  sync — these will not be merged. Ever.
+  sync. These will not be merged. Ever.
 - Treatment claims, therapeutic-effect language, marketing copy that
-  positions OpenBLS as a substitute for therapy — will not be merged.
+  positions OpenBLS as a substitute for therapy. Will not be merged.
 - Safety-copy edits get a slow, careful review. Provide citations.
 
 ## Naming

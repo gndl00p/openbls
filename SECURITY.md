@@ -7,9 +7,9 @@ vulnerabilities in OpenBLS.
 
 Two private channels:
 
-1. **GitHub Security Advisories** — open a private advisory at
+1. **GitHub Security Advisories.** Open a private advisory at
    https://github.com/gndl00p/openbls/security/advisories/new.
-2. **Email** — `security@openbls.invalid` (replace with the canonical
+2. **Email.** `security@openbls.invalid` (replace with the canonical
    address once registered).
 
 Please include:
@@ -40,8 +40,8 @@ Out of scope:
 ## Privacy reports
 
 OpenBLS's stated posture is zero outbound network requests at runtime.
-If you observe the app making any unexpected network request — DNS
-resolution, HTTP, WebSocket, anything — please treat that as a privacy
+If you observe the app making any unexpected network request (DNS
+resolution, HTTP, WebSocket, anything), please treat that as a privacy
 defect and report it under this policy. We treat unintended outbound
 traffic as a security-class issue.
 
